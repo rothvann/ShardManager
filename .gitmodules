@@ -1,0 +1,6 @@
+[submodule "externalDeps/googletest"]
+	path = externalDeps/googletest
+	url = https://github.com/google/googletest
+[submodule "prelude"]
+	path = prelude
+	url = https://github.com/facebook/buck2-prelude.git

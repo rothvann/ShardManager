@@ -1,4 +1,4 @@
-cxx_libary(
+cxx_library(
   name = 'gtest-test',
   deps = [
     '//externalDeps:gtest',

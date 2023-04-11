@@ -1,10 +1,34 @@
+filegroup(
+  name = 'gtest-files',
+  srcs = glob(
+    include = ['googletest/**/*.*'],
+  )
+)
+
 genrule(
-  name = 'gtest',
-  cmd = 'bazel build //externalDeps/googletest:gtest',
+  name = 'build-gtest',
+  srcs = ['//externalDeps:gtest-files'],
+  cmd = 'cmake -S $SRCS/googletest/. -B ./ -DCMAKE_INSTALL_PREFIX=$OUT && make && make install',
+  out = '.',
+)
+
+genrule(
+  name = 'headers-gtest',
+  srcs = ['//externalDeps:build-gtest'], 
+  cmd = 'cp -r $SRCS/include/ $OUT', 
+  out = '.'
+)
+
+genrule(
+  name = 'lib-gtest', 
+  srcs = ['//externalDeps:build-gtest'],
+  cmd = 'cp -r $SRCS/lib/libgtest.a $OUT',
+  out = 'libgtest.a'
 )
 
 prebuilt_cxx_library(
   name = 'gtest',
-  lib_dir = '//externalDeps/googletest/bazel-build/lib',
-  include_dirs = ['//externalDeps/googletest/bazel-build/include'],
+  static_lib = '//externalDeps:lib-gtest',
+  header_dirs = ['//externalDeps:headers-gtest'],
+  preferred_linkage = 'static',
 )
