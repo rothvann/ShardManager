@@ -1,0 +1,10 @@
+genrule(
+  name = 'gtest',
+  cmd = 'bazel build //externalDeps/googletest:gtest',
+)
+
+prebuilt_cxx_library(
+  name = 'gtest',
+  lib_dir = '//externalDeps/googletest/bazel-build/lib',
+  include_dirs = ['//externalDeps/googletest/bazel-build/include'],
+)

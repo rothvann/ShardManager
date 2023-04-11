@@ -1,0 +1,6 @@
+cxx_libary(
+  name = 'gtest-test',
+  deps = [
+    '//externalDeps:gtest',
+  ],
+)
