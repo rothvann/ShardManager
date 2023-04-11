@@ -32,3 +32,31 @@ prebuilt_cxx_library(
   header_dirs = ['//externalDeps:headers-gtest'],
   preferred_linkage = 'static',
 )
+
+filegroup(
+  name = 'or-tools-files',
+  srcs = glob(
+    include = ['or-tools/**/*.*'],
+  ),
+)
+
+genrule(
+  name = 'lib-or-tools',
+  srcs = ['//externalDeps:or-tools-files'],
+  cmd = 'cp -r $SRCS/or-tools/lib/libortools.so $OUT',
+  out = 'libortools.so',
+)
+
+genrule(
+  name = 'headers-or-tools',
+  srcs = ['//externalDeps:or-tools-files'],
+  cmd = 'cp -r $SRCS/or-tools/include $OUT',
+  out = '.',
+)
+
+prebuilt_cxx_library(
+  name = 'or-tools',
+  shared_lib = '//externalDeps:lib-or-tools',
+  header_dirs = ['//externalDeps:headers-or-tools'],
+  preferred_linkage = 'shared',
+)
