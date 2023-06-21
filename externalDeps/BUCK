@@ -1,22 +1,20 @@
 filegroup(
   name = 'gtest-files',
-  srcs = glob(
-    include = ['googletest/**/*.*'],
-  )
+  srcs = glob(['googletest/**/*.*'])
 )
 
 genrule(
   name = 'build-gtest',
   srcs = ['//externalDeps:gtest-files'],
-  cmd = 'cmake -S $SRCS/googletest/. -B ./ -DCMAKE_INSTALL_PREFIX=$OUT && make && make install',
+  cmd = 'cmake -S $SRCS/googletest/. -B ./ -DCMAKE_INSTALL_PREFIX=$OUT -DGTEST_HAS_PTHREAD=1 && make && make install',
   out = '.',
 )
 
 genrule(
   name = 'headers-gtest',
   srcs = ['//externalDeps:build-gtest'], 
-  cmd = 'cp -r $SRCS/include/ $OUT', 
-  out = '.'
+  cmd = 'cp -r $SRCS/include/gtest $OUT', 
+  out = 'gtest'
 )
 
 genrule(
@@ -29,8 +27,12 @@ genrule(
 prebuilt_cxx_library(
   name = 'gtest',
   static_lib = '//externalDeps:lib-gtest',
-  header_dirs = ['//externalDeps:headers-gtest'],
+  header_namespace = '',
+  exported_headers = ['//externalDeps:headers-gtest'],
   preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
 )
 
 filegroup(
@@ -59,4 +61,7 @@ prebuilt_cxx_library(
   shared_lib = '//externalDeps:lib-or-tools',
   header_dirs = ['//externalDeps:headers-or-tools'],
   preferred_linkage = 'shared',
+  visibility = [
+    'PUBLIC',
+  ],
 )

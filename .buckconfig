@@ -10,5 +10,8 @@ fbcode = none
 fbsource = none
 buck = none
 
+[cxx]
+cflags = -Wall -std=c++17
+
 [parser]
 target_platform_detector_spec = target:root//...->prelude//platforms:default

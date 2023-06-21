@@ -1,0 +1,10 @@
+cxx_library(
+  name = 'utils',
+  exported_headers = [
+    'MockShardBin.h',
+    'RandomGenerator.h',
+  ],
+  visibility = [
+    'PUBLIC',
+  ],
+)

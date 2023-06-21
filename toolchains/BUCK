@@ -9,6 +9,7 @@ system_genrule_toolchain(
 
 system_cxx_toolchain(
     name = "cxx",
+    cxx_flags = ["-std=c++17"],
     visibility = ["PUBLIC"],
 )
 

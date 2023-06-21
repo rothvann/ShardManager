@@ -1,0 +1,8 @@
+cxx_binary(
+  name = 'test',
+  srcs = ['TestTree.cpp'],
+  deps = ['//psychopomp:psychopomp', '//externalDeps:gtest'],
+  linker_flags = [
+    '-lpthread',
+  ],
+)

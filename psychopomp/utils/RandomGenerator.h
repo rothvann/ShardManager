@@ -7,7 +7,7 @@ namespace psychopomp {
 namespace random {
 
 template <class T = std::mt19937,
-          std::size_t N = T::state_size * sizeof(typename T::result_type)>
+          bool N = T::state_size * sizeof(typename T::result_type) != 0>
 auto SeededRandomGenerator() -> typename std::enable_if<N, T>::type {
   std::random_device source;
   std::array<std::random_device::result_type, N> random_data;
@@ -21,7 +21,7 @@ template <typename F>
 std::vector<int> generateMetric(F& generator, size_t size) {
   std::vector<int> ret(size);
   for (size_t i = 0; i < size; i++) {
-    ret[i].emplace(generator() % 101));
+    ret.emplace_back(generator() % 101);
   }
   return ret;
 }
