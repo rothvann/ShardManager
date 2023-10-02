@@ -30,6 +30,8 @@ class IterativeLocalSearch {
     auto currentWeight = getTotalWeight(constraints);
 
     for (size_t iter = 0; iter < maxIterations_; iter++) {
+      // Check for unassigned shards
+
       // Order by hottest shards
       binWeights.clear();
       for (DomainId binId = 0; binId < numBins; binId++) {
@@ -90,7 +92,7 @@ class IterativeLocalSearch {
         canariedMoves->addMovement(shard, nextBinId);
         updateWeights(constraints, committedMoves, canariedMoves);
 
-        auto newWeight = getTotalWeight(constraints);
+        auto newWeight = state->getBinWeightInfo().totalWeight;
         if (newWeight < currentWeight) {
           currentWeight = newWeight;
           return canariedMoves;
@@ -106,24 +108,6 @@ class IterativeLocalSearch {
     for (auto constraint : constraints) {
       constraint->canaryMoves(committedMoves, canaryMoves);
     }
-  }
-
-  int32_t getWeight(std::vector<std::shared_ptr<Constraint>>& constraints,
-                    DomainId binId) {
-    int32_t weight = 0;
-    for (auto& constraint : constraints) {
-      weight += constraint->getWeight(binId);
-    }
-    return weight;
-  }
-
-  int32_t getTotalWeight(
-      std::vector<std::shared_ptr<Constraint>>& constraints) {
-    int32_t weight = 0;
-    for (auto& constraint : constraints) {
-      weight += constraint->getTotalWeight();
-    }
-    return weight;
   }
 
  private:

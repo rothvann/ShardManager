@@ -40,7 +40,7 @@ std::shared_ptr<MovementMap> State::getMovementMap() const {
 }
 
 void State::addMetric(Metric metric, const std::vector<int32_t>& metricVector) {
-  metricsMap_.emplace(metric, metricVector);
+  metricVectorMap_.emplace(metric, metricVector);
 }
 
 Domain State::getShardDomain() const { return shardDomain_; }
@@ -57,19 +57,21 @@ size_t State::getDomainSize(Domain domain) const {
 
 std::vector<Metric> State::getMetrics() const {
   std::vector<Metric> metrics;
-  metrics.reserve(metricsMap_.size());
-  for (const auto& [metric, values] : metricsMap_) {
+  metrics.reserve(metricVectorMap_.size());
+  for (const auto& [metric, values] : metricVectorMap_) {
     metrics.emplace_back(metric);
   }
   return metrics;
 }
 
 std::vector<int32_t> State::getMetric(Metric metric) const {
-  return metricsMap_.at(metric);
+  return metricVectorMap_.at(metric);
 }
 
 int32_t State::getShardMetric(Metric metric, DomainId domainId) const {
-  return metricsMap_.at(metric)[domainId];
+  return metricVectorMap_.at(metric)[domainId];
 }
+
+BinWeightInfo& State::getBinWeightInfo() { return binWeightInfo_; }
 
 }  // namespace psychopomp

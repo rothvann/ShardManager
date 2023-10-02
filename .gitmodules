@@ -4,3 +4,9 @@
 [submodule "prelude"]
 	path = prelude
 	url = https://github.com/facebook/buck2-prelude.git
+[submodule "externalDeps/FlameGraph"]
+	path = externalDeps/FlameGraph
+	url = https://github.com/brendangregg/FlameGraph
+[submodule "externalDeps/folly"]
+	path = externalDeps/folly
+	url = https://github.com/facebook/folly.git

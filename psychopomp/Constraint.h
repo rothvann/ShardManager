@@ -11,11 +11,21 @@ namespace psychopomp {
 
 class Constraint {
  public:
+  Constraint(std::shared_ptr<State> state) : state_(state) {}
   virtual void canaryMoves(std::shared_ptr<MovementMap> comittiedMoves,
                            std::shared_ptr<MovementMap> canaryMoves) = 0;
   virtual void commitMoves() = 0;
   virtual int32_t getWeight(DomainId domainId) = 0;
   virtual int32_t getTotalWeight() = 0;
+
+ protected:
+  void addBinWeight(DomainId domainId, int64_t binWeightDelta) {
+    auto& binWeightInfo = state_->getBinWeightInfo();
+    binWeightInfo.binWeightMap[domainId] += binWeightDelta;
+    binWeightInfo.totalWeight += binWeightDelta;
+  }
+
+  std::shared_ptr<State> state_;
 };
 
 class MetricConstraint : public Constraint {
@@ -23,16 +33,16 @@ class MetricConstraint : public Constraint {
   MetricConstraint(std::shared_ptr<State> state, Domain domain,
                    const std::vector<DomainId>& domainIds, Metric metric,
                    int32_t capacity, int32_t faultWeight)
-      : state_(state),
+      : Constraint(state),
         domain_(domain),
         metric_(metric),
         capacity_(capacity),
         faultWeight_(faultWeight) {
-    auto func =
-        [&](const AssignmentTree& assignmentTree,
-            const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
-            const MetricsMap& metricMap, const std::vector<DomainId>& children,
-            std::pair<Domain, DomainId> node) -> int32_t {
+    auto func = [&](const AssignmentTree& assignmentTree,
+                    const std::vector<MovementMap&>& movementMaps,
+                    const MetricsMap& metricMap,
+                    const std::vector<DomainId>& children,
+                    std::pair<Domain, DomainId> node) -> int32_t {
       auto childDomain = assignmentTree.getChildDomain(node.first);
       int32_t val = metricMap.getMetric(node.first, node.second).value_or(0);
 
@@ -59,12 +69,15 @@ class MetricConstraint : public Constraint {
       if (node.first == domain_) {
         if (domainFaultMap_[node.second]) {
           totalWeight_ -= domainFaultMap_[node.second] * faultWeight_;
+          addBinWeight(node.second,
+                       -domainFaultMap_[node.second] * faultWeight_);
         }
 
         if (val > capacity_) {
           auto excess = val - capacity;
           domainFaultMap_[node.second] = excess;
           totalWeight_ += excess * faultWeight_;
+          addBinWeight(node.second, excess * faultWeight);
         } else {
           domainFaultMap_[node.second] = 0;
         }

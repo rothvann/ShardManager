@@ -13,6 +13,11 @@
 
 namespace psychopomp {
 
+struct BinWeightInfo {
+  std::unordered_map<DomainId, int64_t> binWeightMap;
+  int64_t totalWeight;
+};
+
 class State {
  public:
   State(const Domain& shardDomain, const Domain& binDomain);
@@ -38,11 +43,14 @@ class State {
   std::vector<int32_t> getMetric(Metric metric) const;
   int32_t getShardMetric(Metric metric, DomainId domainId) const;
 
+  BinWeightInfo& getBinWeightInfo();
+
  private:
   Domain shardDomain_;
   Domain binDomain_;
 
-  std::unordered_map<Metric, std::vector<int32_t>> metricsMap_;
+  std::unordered_map<Metric, std::vector<int32_t>> metricVectorMap_;
+  BinWeightInfo binWeightInfo_;
 
   // Shard Assignment
   std::unordered_map<Domain, std::vector<DomainId>> domainElements_;

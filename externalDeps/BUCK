@@ -65,3 +65,22 @@ prebuilt_cxx_library(
     'PUBLIC',
   ],
 )
+
+filegroup(
+  name = 'folly-files',
+  srcs = glob(['folly/**/*.*', 'folly/**/*', 'folly/.git/**'])
+)
+
+genrule(
+  name = 'build-folly',
+  srcs = ['//externalDeps:folly-files'],
+  cmd = 'cd $SRCS/folly && python3 ./build/fbcode_builder/getdeps.py --allow-system-packages build',
+  out = '.',
+)
+
+genrule(
+  name = 'lib-folly', 
+  srcs = ['//externalDeps:build-folly'],
+  cmd = 'cp -r $SRCS/installed/folly/lib/libfolly.a $OUT',
+  out = 'libgtest.a'
+)

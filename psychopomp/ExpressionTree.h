@@ -9,6 +9,10 @@
 #include "psychopomp/State.h"
 
 namespace psychopomp {
+/*
+Used to create an expression tree. Values are propagated upwards using the
+function passed in.
+*/
 class ExpressionTree {
  public:
   ExpressionTree(
@@ -22,9 +26,15 @@ class ExpressionTree {
 
   std::shared_ptr<AssignmentTree> getAssignmentTree() const;
 
+  /*
+  Canary a set of moves. Changes are outputted to metrics map.
+  */
   void canaryMoves(std::shared_ptr<MovementMap> committedMoves,
                    std::shared_ptr<MovementMap> canaryMoves);
 
+  /*
+  Commit previous movements previously canaried.
+  */
   void commitMoves();
 
   const MetricsMap& getMetricsMap() const;
