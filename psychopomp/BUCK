@@ -15,7 +15,8 @@ cxx_library(
     'Types.h',
   ],
   deps = [],
-  exported_deps = ['//psychopomp/utils:utils'],
+  exported_deps = ['//externalDeps:folly', '//psychopomp/utils:utils'],
+  preferred_linkage = 'static',
   visibility = [
     'PUBLIC',
   ],

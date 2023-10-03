@@ -39,7 +39,7 @@ class MetricConstraint : public Constraint {
         capacity_(capacity),
         faultWeight_(faultWeight) {
     auto func = [&](const AssignmentTree& assignmentTree,
-                    const std::vector<MovementMap&>& movementMaps,
+                    const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
                     const MetricsMap& metricMap,
                     const std::vector<DomainId>& children,
                     std::pair<Domain, DomainId> node) -> int32_t {

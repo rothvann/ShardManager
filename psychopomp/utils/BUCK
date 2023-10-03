@@ -1,9 +1,12 @@
 cxx_library(
   name = 'utils',
+  deps = ['//externalDeps:folly'],
   exported_headers = [
+    'Committable.h',
     'MockShardBin.h',
     'RandomGenerator.h',
   ],
+  preferred_linkage = 'static',
   visibility = [
     'PUBLIC',
   ],

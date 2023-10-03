@@ -74,13 +74,33 @@ filegroup(
 genrule(
   name = 'build-folly',
   srcs = ['//externalDeps:folly-files'],
-  cmd = 'cd $SRCS/folly && python3 ./build/fbcode_builder/getdeps.py --allow-system-packages build',
+  cmd = '(cd ${SRCDIR}/folly-files/folly && python3 ./build/fbcode_builder/getdeps.py --allow-system-packages build --install-dir=./out) && cp -r ${SRCDIR}/folly-files/folly/out/. $OUT',
   out = '.',
+)
+
+genrule(
+  name = 'headers-folly', 
+  srcs = ['//externalDeps:build-folly'],
+  cmd = 'cp -r $SRCS/include/folly $OUT',
+  out = 'folly'
 )
 
 genrule(
   name = 'lib-folly', 
   srcs = ['//externalDeps:build-folly'],
-  cmd = 'cp -r $SRCS/installed/folly/lib/libfolly.a $OUT',
-  out = 'libgtest.a'
+  cmd = 'cp -r $SRCS/lib/libfolly.a $OUT',
+  out = 'libfolly.a'
+)
+
+prebuilt_cxx_library(
+  name = 'folly',
+  static_lib = '//externalDeps:lib-folly',
+  deps = ['//externalDeps:gtest'],
+  header_namespace = '',
+  exported_headers = ['//externalDeps:headers-folly'],
+  exported_linker_flags = ['-lfmt', '-lglog'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
 )

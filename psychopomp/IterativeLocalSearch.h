@@ -3,9 +3,11 @@
 #include <iostream>
 #include <memory>
 
+#include "folly/MapUtil.h"
 #include "psychopomp/Constraint.h"
 #include "psychopomp/ExpressionTree.h"
 #include "psychopomp/State.h"
+#include "psychopomp/utils/Committable.h"
 #include "psychopomp/utils/RandomGenerator.h"
 
 namespace psychopomp {
@@ -27,7 +29,7 @@ class IterativeLocalSearch {
     std::vector<std::pair<int32_t, DomainId>> binWeights;
     binWeights.reserve(numBins);
 
-    auto currentWeight = getTotalWeight(constraints);
+    auto currentWeight = state->getBinWeightInfo().totalWeight;
 
     for (size_t iter = 0; iter < maxIterations_; iter++) {
       // Check for unassigned shards
@@ -35,7 +37,9 @@ class IterativeLocalSearch {
       // Order by hottest shards
       binWeights.clear();
       for (DomainId binId = 0; binId < numBins; binId++) {
-        binWeights.emplace_back(getWeight(constraints, binId), binId);
+        binWeights.emplace_back(
+            folly::get_default(state->getBinWeightInfo().binWeightMap, 0),
+            binId);
       }
       std::sort(binWeights.begin(), binWeights.end(),
                 std::greater<std::pair<int32_t, DomainId>>());
@@ -65,7 +69,7 @@ class IterativeLocalSearch {
   std::optional<std::shared_ptr<MovementMap>> getMovementForBin(
       std::shared_ptr<State> state, std::shared_ptr<MovementMap> committedMoves,
       std::vector<std::shared_ptr<Constraint>> constraints, DomainId binId,
-      int32_t& currentWeight) {
+      int64_t& currentWeight) {
     std::shared_ptr<MovementMap> canariedMoves =
         std::make_shared<MovementMap>();
     size_t numBins = state->getDomainSize(state->getBinDomain());

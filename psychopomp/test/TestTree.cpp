@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 #include "psychopomp/IterativeLocalSearch.h"
+#include "psychopomp/utils/Committable.h"
 
 namespace psychopomp {
 
