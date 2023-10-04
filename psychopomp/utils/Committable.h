@@ -4,10 +4,12 @@
 
 #include "folly/MapUtil.h"
 
+namespace psychopomp {
+
 template <typename Map, typename Val>
 class Committable {
  public:
-  Committable() {}
+  Committable() = default;
 
   template <typename... Keys>
   std::optional<Val> get(const Keys&... keys) const {
@@ -24,10 +26,15 @@ class Committable {
   template <typename... Keys>
   void set(bool isCanary, Val val, const Keys&... keys) {
     auto& map = isCanary ? canaryMap_ : committedMap_;
-    set(map, val, keys...);
+    setMap(map, val, keys...);
   }
 
-  void commit() { copy(canaryMap_, committedMap_); }
+  void commit() {
+    copyChanges(canaryMap_, committedMap_);
+    canaryMap_.clear();
+  }
+
+  void clear() { canaryMap_.clear(); }
 
   Map& getCanaryMap() { return canaryMap_; }
 
@@ -35,25 +42,26 @@ class Committable {
 
  private:
   template <typename NestedMap, typename FirstKey>
-  void set(NestedMap& map, Val val, const FirstKey& firstKey) {
+  void setMap(NestedMap& map, Val val, const FirstKey& firstKey) {
     map[firstKey] = val;
   }
 
   template <typename NestedMap, typename FirstKey, typename... Keys>
-  void set(NestedMap& map, Val val, const FirstKey& firstKey,
-           const Keys&... keys) {
-    set(map[firstKey], val, keys...);
+  void setMap(NestedMap& map, Val val, const FirstKey& firstKey,
+              const Keys&... keys) {
+    setMap(map[firstKey], val, keys...);
   }
 
   template <typename NestedMap>
-  void copy(NestedMap& canaryMap, NestedMap& committedMap) {
+  void copyChanges(NestedMap& canaryMap, NestedMap& committedMap) {
     for (auto& [key, val] : canaryMap) {
-      copy(val, committedMap[key]);
+      copyChanges(val, committedMap[key]);
     }
   }
 
   template <template <typename...> typename NestedMap, typename Key>
-  void copy(NestedMap<Key, Val>& canaryMap, NestedMap<Key, Val>& committedMap) {
+  void copyChanges(NestedMap<Key, Val>& canaryMap,
+                   NestedMap<Key, Val>& committedMap) {
     for (auto& [key, val] : canaryMap) {
       committedMap[key] = val;
     }
@@ -62,3 +70,4 @@ class Committable {
   Map committedMap_;
   Map canaryMap_;
 };
+}  // namespace psychopomp

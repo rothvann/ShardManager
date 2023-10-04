@@ -9,7 +9,6 @@ cxx_library(
     'Constraint.h',
     'ExpressionTree.h',
     'IterativeLocalSearch.h',
-    'MetricsMap.h',
     'MovementMap.h',
     'State.h',
     'Types.h',

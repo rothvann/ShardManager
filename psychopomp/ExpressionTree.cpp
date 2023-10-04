@@ -14,8 +14,8 @@ ExpressionTree::ExpressionTree(
         calcMetricFunc)
     : state_(state),
       metric_(metric),
-      assignmentTree_(std::make_shared<AssignmentTree>(state->getShardDomain(),
-                                                       state->getBinDomain())),
+      assignmentTree_(std::make_shared<AssignmentTree>(state_->getShardDomain(),
+                                                       state_->getBinDomain())),
       calcMetricFunc_(calcMetricFunc) {
   initializeAssignmentTree(domain, treeParents);
   initializeMetricState();
@@ -27,7 +27,7 @@ std::shared_ptr<AssignmentTree> ExpressionTree::getAssignmentTree() const {
 
 void ExpressionTree::canaryMoves(std::shared_ptr<MovementMap> committedMoves,
                                  std::shared_ptr<MovementMap> canaryMoves) {
-  metricsMap_.clearChanges();
+  metricsMap_.clear();
   const auto& allMovements = canaryMoves->getAllMovements();
   // Check if shard / bin exists in assignment tree if exists then add shard to
   // be updated
@@ -48,7 +48,7 @@ void ExpressionTree::canaryMoves(std::shared_ptr<MovementMap> committedMoves,
       toUpdate, {state_->getMovementMap(), committedMoves, canaryMoves}, true);
 }
 
-void ExpressionTree::commitMoves() { metricsMap_.commitMoves(); }
+void ExpressionTree::commitMoves() { metricsMap_.commit(); }
 
 const MetricsMap& ExpressionTree::getMetricsMap() const { return metricsMap_; }
 
@@ -85,8 +85,9 @@ void ExpressionTree::initializeMetricState() {
                      std::unordered_map<DomainId, std::vector<DomainId>>>
       toUpdate;
   for (auto shardId : shardIds) {
-    metricsMap_.setMetric(shardDomain, shardId,
-                          state_->getShardMetric(metric_, shardId), false);
+    metricsMap_.set(false /* is Canary */,
+                    state_->getShardMetric(metric_, shardId), shardDomain,
+                    shardId);
     auto parents = assignmentTree_->getParents(
         state_->getShardDomain(), shardId, {state_->getMovementMap()});
     for (auto [domain, domainId] : parents) {
@@ -108,12 +109,12 @@ void ExpressionTree::propagateChanges(
 
   for (auto& [domain, domainIdChildrenMap] : toUpdate) {
     for (auto& [domainId, children] : domainIdChildrenMap) {
-      auto prevVal = metricsMap_.getMetric(domain, domainId);
+      auto prevVal = metricsMap_.get(domain, domainId);
       int32_t curVal =
           calcMetricFunc_(*assignmentTree_, movementMaps, metricsMap_, children,
                           {domain, domainId});
       if (!prevVal.has_value() || prevVal.value() != curVal) {
-        metricsMap_.setMetric(domain, domainId, curVal, isCanary);
+        metricsMap_.set(isCanary, curVal, domain, domainId);
 
         auto parents =
             assignmentTree_->getParents(domain, domainId, movementMaps);

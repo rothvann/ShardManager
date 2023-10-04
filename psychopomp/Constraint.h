@@ -38,13 +38,13 @@ class MetricConstraint : public Constraint {
         metric_(metric),
         capacity_(capacity),
         faultWeight_(faultWeight) {
-    auto func = [&](const AssignmentTree& assignmentTree,
-                    const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
-                    const MetricsMap& metricMap,
-                    const std::vector<DomainId>& children,
-                    std::pair<Domain, DomainId> node) -> int32_t {
+    auto func =
+        [&](const AssignmentTree& assignmentTree,
+            const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
+            const MetricsMap& metricMap, const std::vector<DomainId>& children,
+            std::pair<Domain, DomainId> node) -> int32_t {
       auto childDomain = assignmentTree.getChildDomain(node.first);
-      int32_t val = metricMap.getMetric(node.first, node.second).value_or(0);
+      int32_t val = metricMap.get(node.first, node.second).value_or(0);
 
       for (auto child : children) {
         bool isFutureChild = true;
@@ -58,7 +58,7 @@ class MetricConstraint : public Constraint {
           }
         }
 
-        auto metric = metricMap.getMetric(childDomain, child);
+        auto metric = metricMap.get(childDomain, child);
         if (isFutureChild) {
           val += metric.value_or(0);
         } else {
@@ -138,7 +138,6 @@ class MetricConstraint : public Constraint {
   virtual int32_t getTotalWeight() { return totalWeight_; }
 
  private:
-  std::shared_ptr<State> state_;
   Domain domain_;
   Metric metric_;
   int32_t capacity_;

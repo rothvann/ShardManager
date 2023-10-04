@@ -26,11 +26,11 @@ TEST(TestTree, First) {
     metric.emplace_back(5);
   }
   state->addMetric(0, metric);
-
   std::vector<std::shared_ptr<Constraint>> constraints;
   std::shared_ptr<MetricConstraint> freeConstraint =
       std::make_shared<MetricConstraint>(state, 2, std::vector<DomainId>{0}, 0,
                                          0, 20);
+
   std::vector<DomainId> capacity;
   for (size_t i = 1; i <= numBins; i++) {
     capacity.emplace_back(i);
@@ -38,7 +38,6 @@ TEST(TestTree, First) {
   std::shared_ptr<MetricConstraint> capacityConstraint =
       std::make_shared<MetricConstraint>(state, 2, capacity, 0, 100, 20);
 
-  std::cout << "Start " << std::endl;
   IterativeLocalSearch search(20000);
   auto movementMap = search.solve(state, {freeConstraint, capacityConstraint});
 
