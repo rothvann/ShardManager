@@ -7,9 +7,9 @@
 namespace psychopomp {
 
 template <typename Map, typename Val>
-class Committable {
+class CommittableMap {
  public:
-  Committable() = default;
+  CommittableMap() = default;
 
   template <typename... Keys>
   std::optional<Val> get(const Keys&... keys) const {
@@ -31,7 +31,7 @@ class Committable {
 
   void commit() {
     copyChanges(canaryMap_, committedMap_);
-    canaryMap_.clear();
+    clear();
   }
 
   void clear() { canaryMap_.clear(); }
@@ -39,6 +39,24 @@ class Committable {
   Map& getCanaryMap() { return canaryMap_; }
 
   Map& getCommittedMap() { return committedMap_; }
+
+  template <typename... Keys>
+  std::optional<Val> getFromCanaryMap(const Keys&... keys) const {
+    auto ptr = folly::get_ptr(canaryMap_, keys...);
+    if (ptr) {
+      return *ptr;
+    }
+    return std::nullopt;
+  }
+
+  template <typename... Keys>
+  std::optional<Val> getFromCommittedMap(const Keys&... keys) const {
+    auto ptr = folly::get_ptr(committedMap_, keys...);
+    if (ptr) {
+      return *ptr;
+    }
+    return std::nullopt;
+  }
 
  private:
   template <typename NestedMap, typename FirstKey>
@@ -59,9 +77,10 @@ class Committable {
     }
   }
 
-  template <template <typename...> typename NestedMap, typename Key>
-  void copyChanges(NestedMap<Key, Val>& canaryMap,
-                   NestedMap<Key, Val>& committedMap) {
+  template <template <typename...> typename NestedMap, typename Key,
+            typename... K>
+  void copyChanges(NestedMap<Key, Val, K...>& canaryMap,
+                   NestedMap<Key, Val, K...>& committedMap) {
     for (auto& [key, val] : canaryMap) {
       committedMap[key] = val;
     }
@@ -70,4 +89,43 @@ class Committable {
   Map committedMap_;
   Map canaryMap_;
 };
+
+template <typename Val>
+class CommittableKey {
+ public:
+  CommittableKey() = default;
+
+  std::optional<Val> get() const {
+    if (canaryVal_) {
+      return canaryVal_;
+    }
+    return committedVal_;
+  }
+
+  void set(bool isCanary, Val val) {
+    if (isCanary) {
+      canaryVal_ = val;
+    } else {
+      committedVal_ = val;
+    }
+  }
+
+  void commit() {
+    if (canaryVal_) {
+      committedVal_ = canaryVal_;
+    }
+    clear();
+  }
+
+  void clear() { canaryVal_.reset(); }
+
+  std::optional<Val>& getCanaryVal() { return canaryVal_; }
+
+  std::optional<Val>& getCommittedVal() { return committedVal_; }
+
+ private:
+  std::optional<Val> canaryVal_;
+  std::optional<Val> committedVal_;
+};
+
 }  // namespace psychopomp

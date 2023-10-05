@@ -10,6 +10,15 @@
 #include "psychopomp/utils/Committable.h"
 #include "psychopomp/utils/RandomGenerator.h"
 
+// Client
+// cpu 50
+// cpu capacity 200
+
+// 0 - 1, 2, 3, 4
+//
+//
+//
+
 namespace psychopomp {
 
 class IterativeLocalSearch {
@@ -29,7 +38,8 @@ class IterativeLocalSearch {
     std::vector<std::pair<int32_t, DomainId>> binWeights;
     binWeights.reserve(numBins);
 
-    auto currentWeight = state->getBinWeightInfo().totalWeight;
+    auto currentWeight =
+        state->getBinWeightInfo().totalWeight.get().value_or(0);
 
     for (size_t iter = 0; iter < maxIterations_; iter++) {
       // Check for unassigned shards
@@ -38,7 +48,7 @@ class IterativeLocalSearch {
       binWeights.clear();
       for (DomainId binId = 0; binId < numBins; binId++) {
         binWeights.emplace_back(
-            folly::get_default(state->getBinWeightInfo().binWeightMap, 0),
+            state->getBinWeightInfo().binWeightMap.get(binId).value_or(0),
             binId);
       }
       std::sort(binWeights.begin(), binWeights.end(),
@@ -52,7 +62,7 @@ class IterativeLocalSearch {
         if (movement.has_value()) {
           committedMoves->addMovements(movement.value());
           for (auto constraint : constraints) {
-            constraint->commitMoves();
+            constraint->commit();
           }
           hasFoundMove = true;
           break;
@@ -76,7 +86,12 @@ class IterativeLocalSearch {
     // go through all shards
     auto& shards =
         state->getAssignmentTree()->getChild(state->getBinDomain(), binId);
-    for (size_t iter = 0; iter < 500; iter++) {
+
+    if (shards.size() == 0) {
+      return std::nullopt;
+    }
+
+    for (size_t iter = 0; iter < 5; iter++) {
       auto shard = shards[randomGen_() % (shards.size())];
       // Check if shard still exists in bin
       auto nextBin = committedMoves->getNextBin(shard);
@@ -96,7 +111,8 @@ class IterativeLocalSearch {
         canariedMoves->addMovement(shard, nextBinId);
         updateWeights(constraints, committedMoves, canariedMoves);
 
-        auto newWeight = state->getBinWeightInfo().totalWeight;
+        auto newWeight =
+            state->getBinWeightInfo().totalWeight.get().value_or(0);
         if (newWeight < currentWeight) {
           currentWeight = newWeight;
           return canariedMoves;

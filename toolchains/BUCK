@@ -9,8 +9,8 @@ system_genrule_toolchain(
 
 system_cxx_toolchain(
     name = "cxx",
-    cxx_flags = ["-std=c++17"],
-    link_flags = ["-L/usr/local/lib"]
+    cxx_flags = ["-std=c++17", "-O3", "-march=native"],
+    link_flags = ["-L/usr/local/lib"],
     visibility = ["PUBLIC"],
 )
 

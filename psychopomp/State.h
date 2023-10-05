@@ -10,12 +10,13 @@
 #include "psychopomp/AssignmentTree.h"
 #include "psychopomp/MovementMap.h"
 #include "psychopomp/Types.h"
+#include "psychopomp/utils/Committable.h"
 
 namespace psychopomp {
 
 struct BinWeightInfo {
-  std::unordered_map<DomainId, int64_t> binWeightMap;
-  int64_t totalWeight;
+  CommittableMap<std::unordered_map<DomainId, int64_t>, int64_t> binWeightMap;
+  CommittableKey<int64_t> totalWeight;
 };
 
 class State {

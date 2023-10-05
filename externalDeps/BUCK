@@ -74,7 +74,7 @@ filegroup(
 genrule(
   name = 'build-folly',
   srcs = ['//externalDeps:folly-files'],
-  cmd = '(cd ${SRCDIR}/folly-files/folly && python3 ./build/fbcode_builder/getdeps.py --allow-system-packages build --install-dir=./out) && cp -r ${SRCDIR}/folly-files/folly/out/. $OUT',
+  cmd = '(cd ${SRCDIR}/folly-files/folly && python3 ./build/fbcode_builder/getdeps.py --allow-system-packages build --extra-cmake-defines=\'{"FOLLY_CXX_FLAGS": "-march=native", "CMAKE_CXX_FLAGS": "-O3"}\' --install-dir=./out) && cp -r ${SRCDIR}/folly-files/folly/out/. $OUT',
   out = '.',
 )
 

@@ -8,7 +8,7 @@ TEST(TestTree, First) {
   std::shared_ptr<State> state = std::make_shared<State>(1, 2);
   std::unordered_map<DomainId, std::vector<DomainId>> binShardMap;
   size_t numShards = 375000;
-  size_t numBins = 5000;
+  size_t numBins = 3750;
   std::vector<DomainId> shards;
   for (size_t i = 0; i < numShards; i++) {
     shards.emplace_back(i);
@@ -29,16 +29,16 @@ TEST(TestTree, First) {
   std::vector<std::shared_ptr<Constraint>> constraints;
   std::shared_ptr<MetricConstraint> freeConstraint =
       std::make_shared<MetricConstraint>(state, 2, std::vector<DomainId>{0}, 0,
-                                         0, 20);
+                                         0, 1);
 
   std::vector<DomainId> capacity;
   for (size_t i = 1; i <= numBins; i++) {
     capacity.emplace_back(i);
   }
   std::shared_ptr<MetricConstraint> capacityConstraint =
-      std::make_shared<MetricConstraint>(state, 2, capacity, 0, 100, 20);
+      std::make_shared<MetricConstraint>(state, 2, capacity, 0, 1000, 1);
 
-  IterativeLocalSearch search(20000);
+  IterativeLocalSearch search(300000);
   auto movementMap = search.solve(state, {freeConstraint, capacityConstraint});
 
   for (auto [shard, bin] : movementMap->getAllMovements()) {

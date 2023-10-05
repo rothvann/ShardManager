@@ -13,7 +13,7 @@ cxx_library(
     'State.h',
     'Types.h',
   ],
-  deps = [],
+  deps = ['//externalDeps:folly'],
   exported_deps = ['//externalDeps:folly', '//psychopomp/utils:utils'],
   preferred_linkage = 'static',
   visibility = [

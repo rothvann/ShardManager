@@ -14,15 +14,31 @@ class Constraint {
   Constraint(std::shared_ptr<State> state) : state_(state) {}
   virtual void canaryMoves(std::shared_ptr<MovementMap> comittiedMoves,
                            std::shared_ptr<MovementMap> canaryMoves) = 0;
-  virtual void commitMoves() = 0;
-  virtual int32_t getWeight(DomainId domainId) = 0;
-  virtual int32_t getTotalWeight() = 0;
+
+  void commit() {
+    commitMoves();
+
+    auto& binWeightInfo = state_->getBinWeightInfo();
+    binWeightInfo.binWeightMap.commit();
+    binWeightInfo.totalWeight.commit();
+  }
 
  protected:
+  virtual void commitMoves() = 0;
+
+  void resetBinWeights() {}
+
   void addBinWeight(DomainId domainId, int64_t binWeightDelta) {
     auto& binWeightInfo = state_->getBinWeightInfo();
-    binWeightInfo.binWeightMap[domainId] += binWeightDelta;
-    binWeightInfo.totalWeight += binWeightDelta;
+    auto prevWeight =
+        binWeightInfo.binWeightMap.getFromCommittedMap(domainId).value_or(0);
+    binWeightInfo.binWeightMap.set(true /* isCanary */,
+                                   prevWeight + binWeightDelta, domainId);
+
+    auto prevTotalWeight =
+        binWeightInfo.totalWeight.getCommittedVal().value_or(0);
+    binWeightInfo.totalWeight.set(true /* isCanary */,
+                                  prevTotalWeight + binWeightDelta);
   }
 
   std::shared_ptr<State> state_;
@@ -67,17 +83,18 @@ class MetricConstraint : public Constraint {
       }
 
       if (node.first == domain_) {
+        int64_t prevWeight = 0;
         if (domainFaultMap_[node.second]) {
-          totalWeight_ -= domainFaultMap_[node.second] * faultWeight_;
-          addBinWeight(node.second,
-                       -domainFaultMap_[node.second] * faultWeight_);
+          prevWeight = domainFaultMap_[node.second] * faultWeight_;
         }
 
         if (val > capacity_) {
-          auto excess = val - capacity;
+          int64_t excess = val - capacity;
           domainFaultMap_[node.second] = excess;
-          totalWeight_ += excess * faultWeight_;
-          addBinWeight(node.second, excess * faultWeight);
+
+          auto currentWeight = excess * faultWeight_;
+          auto weightDelta = currentWeight - prevWeight;
+          addBinWeight(node.second, weightDelta);
         } else {
           domainFaultMap_[node.second] = 0;
         }
@@ -86,12 +103,7 @@ class MetricConstraint : public Constraint {
     };
     expressionTree_ = std::make_shared<ExpressionTree>(state_, metric_, domain_,
                                                        domainIds, func);
-    /*
-    for (auto domainId : domainIds) {
-      expressionTreeMap_[domainId] = std::make_shared<ExpressionTree>(
-          state_, metric_, domain_, std::vector<DomainId>{domainId}, func);
-    }
-    */
+    commit();
   }
 
   virtual void canaryMoves(std::shared_ptr<MovementMap> committedMoves,
@@ -135,8 +147,6 @@ class MetricConstraint : public Constraint {
     return totalWeight;
   }
 
-  virtual int32_t getTotalWeight() { return totalWeight_; }
-
  private:
   Domain domain_;
   Metric metric_;
@@ -147,7 +157,6 @@ class MetricConstraint : public Constraint {
   std::unordered_map<DomainId, std::shared_ptr<ExpressionTree>>
       expressionTreeMap_;
   std::unordered_map<DomainId, int32_t> domainFaultMap_;
-  int32_t totalWeight_;
 };
 
 }  // namespace psychopomp

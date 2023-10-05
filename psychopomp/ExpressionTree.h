@@ -12,7 +12,7 @@ namespace psychopomp {
 
 typedef std::unordered_map<Domain, std::unordered_map<DomainId, int32_t>>
     NodeToMetricsMap;
-typedef Committable<NodeToMetricsMap, int32_t> MetricsMap;
+typedef CommittableMap<NodeToMetricsMap, int32_t> MetricsMap;
 
 /*
 Used to create an expression tree. Values are propagated upwards using the
@@ -20,14 +20,14 @@ function passed in.
 */
 class ExpressionTree {
  public:
-  ExpressionTree(std::shared_ptr<State> state, Metric metric, Domain domain,
-                 const std::vector<DomainId>& treeParents,
-                 std::function<int32_t(
-                     const AssignmentTree&,
-                     const std::vector<std::shared_ptr<MovementMap>>&,
-                     const Committable<NodeToMetricsMap, int32_t>&,
-                     const std::vector<DomainId>&, std::pair<Domain, DomainId>)>
-                     calcMetricFunc);
+  ExpressionTree(
+      std::shared_ptr<State> state, Metric metric, Domain domain,
+      const std::vector<DomainId>& treeParents,
+      std::function<int32_t(const AssignmentTree&,
+                            const std::vector<std::shared_ptr<MovementMap>>&,
+                            const MetricsMap&, const std::vector<DomainId>&,
+                            std::pair<Domain, DomainId>)>
+          calcMetricFunc);
 
   std::shared_ptr<AssignmentTree> getAssignmentTree() const;
 
