@@ -145,7 +145,9 @@ class LoadBalancingConstraint : public Constraint {
         domain_(domain),
         metric_(metric),
         maxDelta_(maxDelta),
-        faultWeightMultiplier_(faultWeightMultiplier) {
+        faultWeightMultiplier_(faultWeightMultiplier),
+        domainSize_(domainIds.size()),
+        metricSum_(0) {
     auto func =
         [&](const AssignmentTree& assignmentTree,
             const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
@@ -174,15 +176,63 @@ class LoadBalancingConstraint : public Constraint {
         }
       }
 
+      if (node.first == domain_) {
+        auto* prev = folly::get_ptr(domainMetricMap_, node.second);
+        if (prev) {
+          if (*prev != val) {
+            *prev = val;
+            domainUpdatedSet_.insert(node.second);
+
+            metricSum_ -= *prev;
+            metricSum_ += val;
+          }
+        } else {
+          domainMetricMap_[node.second] = val;
+          domainUpdatedSet_.insert(node.second);
+          metricSum_ += val;
+        }
+      }
+
       return val;
     };
+    expressionTree_ = std::make_shared<ExpressionTree>(state_, metric_, domain_,
+                                                       domainIds, func);
+
+    updateWeights();
+    commit();
   }
 
+  virtual void canaryMoves(std::shared_ptr<MovementMap> committedMoves,
+                           std::shared_ptr<MovementMap> canaryMoves) {
+    expressionTree_->canaryMoves(committedMoves, canaryMoves);
+    updateWeights();
+  }
+
+  virtual void commitMoves() { expressionTree_->commitMoves(); }
+
  private:
+  void updateWeights() {
+    auto meanMetric = static_cast<double>(metricSum_) / domainSize_;
+    for (auto domainId : domainUpdatedSet_) {
+      auto currentMetric = folly::get_default(domainMetricMap_, domainId, 0);
+      auto delta = std::abs(currentMetric - meanMetric);
+      if (delta > maxDelta_) {
+        if (domain_ == state_->getBinDomain()) {
+          addBinWeight(domainId, delta * faultWeightMultiplier_);
+        } else {
+          addTotalWeight(delta * faultWeightMultiplier_);
+        }
+      }
+    }
+    domainUpdatedSet_.clear();
+  }
+
   Domain domain_;
   Metric metric_;
   int32_t maxDelta_;
   double faultWeightMultiplier_;
+  int32_t domainSize_;
+  int64_t metricSum_;
 
   std::shared_ptr<ExpressionTree> expressionTree_;
 
