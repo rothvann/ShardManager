@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include "ankerl/unordered_dense.h"
 #include "psychopomp/AssignmentTree.h"
 #include "psychopomp/MovementMap.h"
 #include "psychopomp/Types.h"

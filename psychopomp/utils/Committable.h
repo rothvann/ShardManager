@@ -70,17 +70,21 @@ class CommittableMap {
     setMap(map[firstKey], val, keys...);
   }
 
-  template <typename NestedMap>
+  template <typename NestedMap,
+            typename std::enable_if<
+                !std::is_same<typename NestedMap::mapped_type, Val>::value,
+                bool>::type = false>
   void copyChanges(NestedMap& canaryMap, NestedMap& committedMap) {
     for (auto& [key, val] : canaryMap) {
       copyChanges(val, committedMap[key]);
     }
   }
 
-  template <template <typename...> typename NestedMap, typename Key,
-            typename... K>
-  void copyChanges(NestedMap<Key, Val, K...>& canaryMap,
-                   NestedMap<Key, Val, K...>& committedMap) {
+  template <typename NestedMap,
+            typename std::enable_if<
+                std::is_same<typename NestedMap::mapped_type, Val>::value,
+                bool>::type = false>
+  void copyChanges(NestedMap& canaryMap, NestedMap& committedMap) {
     for (auto& [key, val] : canaryMap) {
       committedMap[key] = val;
     }

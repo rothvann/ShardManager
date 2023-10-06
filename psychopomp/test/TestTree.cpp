@@ -7,8 +7,8 @@ namespace psychopomp {
 TEST(TestTree, First) {
   std::shared_ptr<State> state = std::make_shared<State>(1, 2);
   std::unordered_map<DomainId, std::vector<DomainId>> binShardMap;
-  size_t numShards = 375000;
-  size_t numBins = 3750;
+  size_t numShards = 600000;
+  size_t numBins = 5000;
   std::vector<DomainId> shards;
   for (size_t i = 0; i < numShards; i++) {
     shards.emplace_back(i);
@@ -38,12 +38,8 @@ TEST(TestTree, First) {
   std::shared_ptr<MetricConstraint> capacityConstraint =
       std::make_shared<MetricConstraint>(state, 2, capacity, 0, 1000, 1);
 
-  IterativeLocalSearch search(300000);
+  IterativeLocalSearch search(500000);
   auto movementMap = search.solve(state, {freeConstraint, capacityConstraint});
-
-  for (auto [shard, bin] : movementMap->getAllMovements()) {
-    std::cout << shard << " moving to " << bin << std::endl;
-  }
 }
 }  // namespace psychopomp
 

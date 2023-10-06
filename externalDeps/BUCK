@@ -104,3 +104,33 @@ prebuilt_cxx_library(
     'PUBLIC',
   ],
 )
+
+filegroup(
+  name = 'unordered-dense-files',
+  srcs = glob(['unordered_dense/**/*.*'])
+)
+
+genrule(
+  name = 'build-unordered-dense',
+  srcs = ['//externalDeps:unordered-dense-files'],
+  cmd = 'cmake -S $SRCS/unordered_dense/. -B ./ -DCMAKE_INSTALL_PREFIX=$OUT -DCMAKE_CXX_FLAGS="-O2 -march=native" && cmake --build . --target install',
+  out = '.',
+)
+
+
+genrule(
+  name = 'headers-unordered-dense', 
+  srcs = ['//externalDeps:build-unordered-dense'],
+  cmd = 'cp -r $SRCS/include/ankerl $OUT',
+  out = 'ankerl',
+)
+
+prebuilt_cxx_library (
+  name = 'unordered-dense',
+  header_only = True,
+  header_namespace = '',
+  exported_headers = ['//externalDeps:headers-unordered-dense'],
+  visibility = [
+    'PUBLIC',
+  ],
+)
