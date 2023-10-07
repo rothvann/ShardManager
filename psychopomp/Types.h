@@ -23,8 +23,9 @@ struct AllocatorOutput {
 struct AllocatorInput {
   AllocatorOutput previousOutput;
 
-  // Vector contains metrics for each shard in the previous range. Sizes should
+  // Vector contains metrics for each shard in shardToRangeIndex. Sizes should
   // match.
+  std::vector<size_t> shardToRangeIndex;
   std::unordered_map<Metric, std::vector<int32_t>> metricVectorMap_;
 };
 
