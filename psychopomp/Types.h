@@ -13,7 +13,7 @@ typedef size_t DomainId;
 typedef size_t Metric;
 
 struct AllocatorInput {
-  Output previousOutput;
+  AllocatorOutput previousOutput;
 
   // Vector contains metrics for each shard in the previous range. Sizes should
   // match.
