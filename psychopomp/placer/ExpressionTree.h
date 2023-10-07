@@ -4,9 +4,9 @@
 #include <memory>
 #include <unordered_map>
 
-#include "psychopomp/AssignmentTree.h"
-#include "psychopomp/State.h"
-#include "psychopomp/utils/Committable.h"
+#include "psychopomp/placer/AssignmentTree.h"
+#include "psychopomp/placer/State.h"
+#include "psychopomp/placer/utils/Committable.h"
 
 namespace psychopomp {
 

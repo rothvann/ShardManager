@@ -4,11 +4,11 @@
 #include <memory>
 
 #include "folly/MapUtil.h"
-#include "psychopomp/Constraint.h"
-#include "psychopomp/ExpressionTree.h"
-#include "psychopomp/State.h"
-#include "psychopomp/utils/Committable.h"
-#include "psychopomp/utils/RandomGenerator.h"
+#include "psychopomp/placer/Constraint.h"
+#include "psychopomp/placer/ExpressionTree.h"
+#include "psychopomp/placer/State.h"
+#include "psychopomp/placer/utils/Committable.h"
+#include "psychopomp/placer/utils/RandomGenerator.h"
 
 // Client
 // cpu 50

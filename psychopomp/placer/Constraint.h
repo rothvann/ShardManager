@@ -3,9 +3,9 @@
 #include <iostream>
 #include <memory>
 
-#include "psychopomp/ExpressionTree.h"
-#include "psychopomp/State.h"
 #include "psychopomp/Types.h"
+#include "psychopomp/placer/ExpressionTree.h"
+#include "psychopomp/placer/State.h"
 
 namespace psychopomp {
 

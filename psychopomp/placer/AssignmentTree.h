@@ -3,8 +3,8 @@
 #include <iostream>
 #include <unordered_set>
 
-#include "psychopomp/MovementMap.h"
 #include "psychopomp/Types.h"
+#include "psychopomp/placer/MovementMap.h"
 
 namespace psychopomp {
 class AssignmentTree {
