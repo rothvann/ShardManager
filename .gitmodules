@@ -7,9 +7,9 @@
 [submodule "externalDeps/folly"]
 	path = externalDeps/folly
 	url = https://github.com/facebook/folly.git
-[submodule "prelude"]
-	path = prelude
-	url = https://github.com/facebook/buck2-prelude.git
 [submodule "externalDeps/unordered_dense"]
 	path = externalDeps/unordered_dense
 	url = https://github.com/martinus/unordered_dense.git
+[submodule "prelude"]
+	path = prelude
+	url = https://github.com/facebook/buck2-prelude.git

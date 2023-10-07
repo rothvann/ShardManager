@@ -1,2 +1,3 @@
 buck-out/**
 .vscode/**
+prelude/**

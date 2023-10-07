@@ -17,3 +17,4 @@ rustup install nightly-2023-07-10
 cargo +nightly-2023-07-10 install --git https://github.com/facebook/buck2.git buck2
 export PATH=$HOME/.cargo/bin:$PATH
 
+buck2 init
