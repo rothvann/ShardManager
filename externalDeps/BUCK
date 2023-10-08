@@ -117,7 +117,6 @@ genrule(
   out = '.',
 )
 
-
 genrule(
   name = 'headers-unordered-dense', 
   srcs = ['//externalDeps:build-unordered-dense'],
@@ -130,6 +129,88 @@ prebuilt_cxx_library (
   header_only = True,
   header_namespace = '',
   exported_headers = ['//externalDeps:headers-unordered-dense'],
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+filegroup(
+  name = 'abseil-files',
+  srcs = glob(['abseil-cpp/**/*.*'])
+)
+
+genrule(
+  name = 'build-abseil',
+  srcs = ['//externalDeps:abseil-files'],
+  cmd = '(cd $SRCS/abseil-cpp && cmake . -DBUILD_TESTING=OFF -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native" && make && make install) && cp -r $SRCS/abseil-cpp/out/. $OUT',
+  out = '.',
+)
+
+genrule(
+  name = 'headers-abseil', 
+  srcs = ['//externalDeps:build-abseil'],
+  cmd = 'cp -r $SRCS/include/absl $OUT',
+  out = 'absl',
+)
+
+genrule(
+  name = 'lib-abseil', 
+  srcs = ['//externalDeps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib $OUT',
+  out = 'lib'
+)
+
+prebuilt_cxx_library(
+  name = 'abseil',
+  static_lib = '//externalDeps:lib-abseil',
+  header_namespace = '',
+  exported_headers = ['//externalDeps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+filegroup(
+  name = 'protobuf-files',
+  srcs = glob(['protobuf/**/*.*'])
+)
+
+genrule(
+  name = 'build-protobuf',
+  srcs = ['//externalDeps:protobuf-files'],
+  cmd = '(cd $SRCS/protobuf && cmake . -Dprotobuf_ABSL_PROVIDER=package -DCMAKE_PREFIX_PATH=../../$(location //externalDeps:build-abseil)/lib/cmake/ -Dprotobuf_BUILD_TESTS=OFF -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native" && make && make install) && cp -r $SRCS/protobuf/out/. $OUT',
+  out = '.',
+)
+
+genrule(
+  name = 'protoc',
+  srcs = ['//externalDeps:build-protobuf'],
+  cmd = 'cp $SRCS/bin/protoc $OUT',
+  executable = True,
+  out = 'protoc'
+)
+
+genrule(
+  name = 'headers-protobuf', 
+  srcs = ['//externalDeps:build-protobuf'],
+  cmd = 'cp -r $SRCS/include $OUT',
+  out = 'include',
+)
+
+genrule(
+  name = 'lib-protobuf', 
+  srcs = ['//externalDeps:build-protobuf'],
+  cmd = 'cp -r $SRCS/lib $OUT',
+  out = 'lib'
+)
+
+prebuilt_cxx_library(
+  name = 'protobuf',
+  static_lib = '//externalDeps:lib-protobuf',
+  header_namespace = '',
+  exported_headers = ['//externalDeps:headers-protobuf'],
+  preferred_linkage = 'static',
   visibility = [
     'PUBLIC',
   ],

@@ -6,25 +6,25 @@ namespace psychopomp {
 
 TEST(TestTree, First) {
   std::shared_ptr<State> state = std::make_shared<State>(1, 2);
-  std::unordered_map<DomainId, std::vector<DomainId>> binShardMap;
   size_t numShards = 600000;
   size_t numBins = 5000;
   std::vector<DomainId> shards;
+  std::vector<std::vector<DomainId>> binShardMap(numBins + 1,
+                                                 std::vector<DomainId>());
   for (size_t i = 0; i < numShards; i++) {
     shards.emplace_back(i);
   }
 
   binShardMap[0] = shards;
-  for (size_t i = 1; i <= numBins; i++) {
-    binShardMap[i] = {};
-  }
-  state->setShards(shards);
+
+  state->setShards(numShards);
   state->addDomain(2, 1, binShardMap);
 
   std::vector<int32_t> metric;
   for (size_t i = 0; i < numShards; i++) {
     metric.emplace_back(5);
   }
+
   state->addMetric(0, metric);
   std::vector<std::shared_ptr<Constraint>> constraints;
   std::shared_ptr<MetricConstraint> freeConstraint =

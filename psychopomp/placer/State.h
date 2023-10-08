@@ -24,11 +24,10 @@ class State {
  public:
   State(const Domain& shardDomain, const Domain& binDomain);
 
-  void setShards(const std::vector<DomainId>& shards);
+  void setShards(const size_t numShards);
 
   void addDomain(const Domain& parentDomain, const Domain& childDomain,
-                 const std::unordered_map<DomainId, std::vector<DomainId>>&
-                     parentChildMap);
+                 const std::vector<std::vector<DomainId>>& parentChildMap);
 
   std::shared_ptr<AssignmentTree> getAssignmentTree() const;
 
@@ -55,7 +54,7 @@ class State {
   BinWeightInfo binWeightInfo_;
 
   // Shard Assignment
-  std::unordered_map<Domain, std::vector<DomainId>> domainElements_;
+  std::unordered_map<Domain, size_t> domainElements_;
   std::unordered_map<Domain, std::unordered_map<DomainId, DomainId>>
       domainIdMap_;
 

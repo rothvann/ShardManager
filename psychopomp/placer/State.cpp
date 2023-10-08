@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#include "folly/MapUtil.h"
+
 namespace psychopomp {
 
 State::State(const Domain& shardDomain, const Domain& binDomain)
@@ -10,22 +12,17 @@ State::State(const Domain& shardDomain, const Domain& binDomain)
       assignmentTree_(std::make_shared<AssignmentTree>(shardDomain, binDomain)),
       movementMap_(std::make_shared<MovementMap>()) {}
 
-void State::setShards(const std::vector<DomainId>& shards) {
-  domainElements_.emplace(shardDomain_, shards);
+void State::setShards(const size_t numShards) {
+  domainElements_.emplace(shardDomain_, numShards);
 }
 
 void State::addDomain(
     const Domain& parentDomain, const Domain& childDomain,
-    const std::unordered_map<DomainId, std::vector<DomainId>>& parentChildMap) {
-  auto& parentDomainElements = domainElements_[parentDomain];
-  parentDomainElements.reserve(parentChildMap.size());
+    const std::vector<std::vector<DomainId>>& parentChildMap) {
+  domainElements_.emplace(parentDomain, parentChildMap.size());
 
-  auto& parentDomainIds = domainIdMap_[parentDomain];
-
-  for (const auto& [parentId, childIdVector] : parentChildMap) {
-    parentDomainElements.emplace_back(parentId);
-    parentDomainIds[parentId] = parentId;
-
+  for (size_t parentId = 0; parentId < parentChildMap.size(); parentId++) {
+    const auto& childIdVector = parentChildMap[parentId];
     assignmentTree_->addMapping({parentDomain, parentId},
                                 {childDomain, childIdVector});
   }
@@ -48,11 +45,7 @@ Domain State::getShardDomain() const { return shardDomain_; }
 Domain State::getBinDomain() const { return binDomain_; }
 
 size_t State::getDomainSize(Domain domain) const {
-  auto it = domainElements_.find(domain);
-  if (it != domainElements_.end()) {
-    return it->second.size();
-  }
-  return 0;
+  return folly::get_default(domainElements_, domain, 0);
 }
 
 std::vector<Metric> State::getMetrics() const {

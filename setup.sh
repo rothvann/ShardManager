@@ -5,7 +5,7 @@ git submodule update
 
 
 # General deps + deps for folly not installed
-sudo apt install build-essential lld clang libssl-dev libfmt-dev linux-tools-common linux-tools-generic
+sudo apt install build-essential lld clang libssl-dev libfmt-dev linux-tools-common linux-tools-generic bazel
 
 # Folly deps
 (cd externalDeps/folly && ./build/fbcode_builder/getdeps.py install-system-deps --recursive)

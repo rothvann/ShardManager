@@ -13,3 +13,9 @@
 [submodule "prelude"]
 	path = prelude
 	url = https://github.com/facebook/buck2-prelude.git
+[submodule "externalDeps/protobuf"]
+	path = externalDeps/protobuf
+	url = https://github.com/protocolbuffers/protobuf.git
+[submodule "externalDeps/abseil-cpp"]
+	path = externalDeps/abseil-cpp
+	url = https://github.com/abseil/abseil-cpp.git
