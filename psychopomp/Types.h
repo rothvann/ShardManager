@@ -16,33 +16,34 @@ struct RangeJoinInfo {};
 
 struct RangeSplitInfo {};
 
-union RangeMutation {
-  RangeJoinInfo joinInfo;
-  RangeSplitInfo splitInfo;
+enum class MutationType {
+  JOIN,
+  SPLIT,
 };
 
-struct RangeMutationInfo {
-  enum MutationType {
-    JOIN,
-    SPLIT,
-  };
-  RangeMutation mutation;
+enum class RangeState {
+  NORMAL,
+  MUTATING,
+  UNKNOWN,
+};
+
+struct RangeMutation {
+  std::vector<std::pair<int64_t, int64_t>> currentRanges;
+  std::vector<std::pair<int64_t, int64_t>> futureRanges;
 };
 
 struct AllocatorOutput {
-  std::vector<RangeMutationInfo> shardMutations;
+  std::vector<std::pair<int64_t, int64_t>> shardRanges;
+  std::vector<RangeMutation> shardMutations;
 };
 
 struct AllocatorInput {
-  /*
-  Each adjacent pair of elements is a range. Consider [0, 5, 15, 35], the pairs
-  are: [0, 4] [5, 14] [15, 34] and the whole range is [0, 34]
-  */
-  std::vector<int64_t> shardRanges;
+  std::vector<std::pair<int64_t, int64_t>> shardRanges;
+  std::vector<RangeState> shardRangeStates;
 
-  // Vector contains metrics for each shard in shardToRangeIndex. Sizes should
-  // match.
   std::vector<size_t> shardToRangeIndex;
+
+  std::vector<RangeMutation> prevShardMutations;
   std::unordered_map<Metric, std::vector<int32_t>> metricVectorMap_;
 };
 

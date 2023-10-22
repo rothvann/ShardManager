@@ -19,3 +19,6 @@
 [submodule "externalDeps/abseil-cpp"]
 	path = externalDeps/abseil-cpp
 	url = https://github.com/abseil/abseil-cpp.git
+[submodule "externalDeps/grpc"]
+	path = externalDeps/grpc
+	url = https://github.com/grpc/grpc.git

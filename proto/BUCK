@@ -1,0 +1,47 @@
+genrule(
+  name = 'protos',
+  srcs = ['ServiceDiscovery.proto'],
+  cmd = 'mkdir $OUT && $(exe //externalDeps:protoc) --plugin=protoc-gen-cpp-grpc=$(location //externalDeps:bin-grpc)/grpc_cpp_plugin --cpp-grpc_out=$OUT --cpp_out=$OUT *.proto',
+  out = 'proto'
+)
+
+genrule(
+  name = 'service_discovery_cc',
+  srcs = ['//proto:protos'],
+  cmd = 'cp $SRCS/ServiceDiscovery.pb.cc $OUT',
+  out = 'ServiceDiscovery.pb.cc',
+)
+
+genrule(
+  name = 'service_discovery_grpc_cc',
+  srcs = ['//proto:protos'],
+  cmd = 'cp $SRCS/ServiceDiscovery.grpc.pb.cc $OUT',
+  out = 'ServiceDiscovery.grpc.pb.cc',
+)
+
+genrule(
+  name = 'service_discovery_h',
+  srcs = ['//proto:protos'],
+  cmd = 'cp $SRCS/ServiceDiscovery.pb.h $OUT',
+  out = 'ServiceDiscovery.pb.h',
+)
+
+genrule(
+  name = 'service_discovery_grpc_h',
+  srcs = ['//proto:protos'],
+  cmd = 'cp $SRCS/ServiceDiscovery.grpc.pb.h $OUT',
+  out = 'ServiceDiscovery.grpc.pb.h',
+)
+
+cxx_library(
+  name = 'service_discovery_cpp',
+  srcs = ['//proto:service_discovery_cc', '//proto:service_discovery_grpc_cc'],
+  header_namespace = '',
+  exported_headers = ['//proto:service_discovery_h', '//proto:service_discovery_grpc_h'],
+  deps = ['//externalDeps:protobuf', '//externalDeps:grpc'],
+  exported_deps = ['//externalDeps:protobuf', '//externalDeps:grpc'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)

@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package psychopomp;
+
+/*
+Type Declarations
+*/
+
+message ShardRange {
+    int64 range_start = 1;
+    int64 range_end = 2;
+}
+
+enum ShardPlacementStatus {
+    PLACEMENT_STATUS_UNKNOWN = 0;
+    PLACEMENT_STATUS_PREPARING = 1;
+    PLACEMENT_STATUS_IDLE = 2;
+    PLACEMENT_STATUS_ACTIVATING = 3;
+    PLACEMENT_STATUS_ACTIVE = 4;
+    PLACEMENT_STATUS_DEACTIVATING = 5;
+    PLACEMENT_STATUS_DROPPED = 6;
+}
+
+enum HealthStatus {
+    HEALTH_STATUS_UNHEALTHY = 0;
+    HEALTH_STATUS_HEALTHY = 1;
+}
+
+message ShardState {
+    ShardRange range = 1;
+    ShardPlacementStatus status = 2;
+}
+
+enum BinStatus {
+    BIN_STATUS_UNHEALTHY = 0;
+    BIN_STATUS_HEALTHY = 1;
+    BIN_STATUS_REQUEST_DRAIN = 2;
+}
+
+
+message BinState {
+    repeated ShardState shard_states = 1;
+    BinStatus status = 2;
+}
+
+
+/* 
+Service Declarations
+*/
+
+message ShardUpdateRequest {
+
+}
+
+/* Empty */
+message ShardUpdateResponse {
+}
+
+message HeartBeatResponse {
+    BinState binState = 1;
+}
+
+/* Empty */
+message HeartBeatRequest {
+}
+
+service PyschopompService {
+    rpc registerHeartBeat(stream HeartBeatResponse) returns (stream HeartBeatRequest);
+}
+
+service PyschopompClient {
+    rpc updateShards(ShardUpdateRequest) returns (ShardUpdateResponse);
+}
