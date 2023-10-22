@@ -15,9 +15,9 @@ enum ShardPlacementStatus {
     PLACEMENT_STATUS_UNKNOWN = 0;
     PLACEMENT_STATUS_PREPARING = 1;
     PLACEMENT_STATUS_IDLE = 2;
-    PLACEMENT_STATUS_ACTIVATING = 3;
+    PLACEMENT_STATUS_STARTING = 3;
     PLACEMENT_STATUS_ACTIVE = 4;
-    PLACEMENT_STATUS_DEACTIVATING = 5;
+    PLACEMENT_STATUS_STOPPING = 5;
     PLACEMENT_STATUS_DROPPED = 6;
 }
 
@@ -37,7 +37,6 @@ enum BinStatus {
     BIN_STATUS_REQUEST_DRAIN = 2;
 }
 
-
 message BinState {
     repeated ShardState shard_states = 1;
     BinStatus status = 2;
@@ -47,13 +46,21 @@ message BinState {
 /* 
 Service Declarations
 */
-
-message ShardUpdateRequest {
-
+enum ShardUpdateAction {
+    SHARD_UPDATE_ACTION_UNKNOWN = 0;
+    SHARD_UPDATE_ACTION_PREPARE = 1;
+    SHARD_UPDATE_ACTION_START = 2;
+    SHARD_UPDATE_ACTION_STOP = 3;
+    SHARD_UPDATE_ACTION_DROP = 4;
 }
 
-/* Empty */
+message ShardUpdateRequest {
+    ShardUpdateAction action = 1;
+    ShardRange range = 2;
+}
+
 message ShardUpdateResponse {
+    bool success = 1;
 }
 
 message HeartBeatResponse {
