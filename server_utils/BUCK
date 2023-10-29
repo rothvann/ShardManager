@@ -1,0 +1,14 @@
+cxx_library(
+    name = 'server_utils',
+    srcs = [
+        'AsyncServer.cpp',
+    ],
+    exported_headers = [
+        'AsyncServer.h',
+        'HandlerManager.h',
+    ],
+    exported_deps = ['//external_deps:folly', '//external_deps:grpc',],
+    visibility = [
+        'PUBLIC',
+    ],
+)

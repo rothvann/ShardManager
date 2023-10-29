@@ -5,30 +5,30 @@ filegroup(
 
 genrule(
   name = 'build-gtest',
-  srcs = ['//externalDeps:gtest-files'],
+  srcs = ['//external_deps:gtest-files'],
   cmd = 'cmake -S $SRCS/googletest/. -B ./ -DCMAKE_INSTALL_PREFIX=$OUT -DGTEST_HAS_PTHREAD=1 && make && make install',
   out = '.',
 )
 
 genrule(
   name = 'headers-gtest',
-  srcs = ['//externalDeps:build-gtest'], 
-  cmd = 'cp -r $SRCS/include/gtest $OUT', 
+  srcs = ['//external_deps:build-gtest'],
+  cmd = 'cp -r $SRCS/include/gtest $OUT',
   out = 'gtest'
 )
 
 genrule(
-  name = 'lib-gtest', 
-  srcs = ['//externalDeps:build-gtest'],
+  name = 'lib-gtest',
+  srcs = ['//external_deps:build-gtest'],
   cmd = 'cp -r $SRCS/lib/libgtest.a $OUT',
   out = 'libgtest.a'
 )
 
 prebuilt_cxx_library(
   name = 'gtest',
-  static_lib = '//externalDeps:lib-gtest',
+  static_lib = '//external_deps:lib-gtest',
   header_namespace = '',
-  exported_headers = ['//externalDeps:headers-gtest'],
+  exported_headers = ['//external_deps:headers-gtest'],
   preferred_linkage = 'static',
   visibility = [
     'PUBLIC',
@@ -44,22 +44,22 @@ filegroup(
 
 genrule(
   name = 'lib-or-tools',
-  srcs = ['//externalDeps:or-tools-files'],
+  srcs = ['//external_deps:or-tools-files'],
   cmd = 'cp -r $SRCS/or-tools/lib/libortools.so $OUT',
   out = 'libortools.so',
 )
 
 genrule(
   name = 'headers-or-tools',
-  srcs = ['//externalDeps:or-tools-files'],
+  srcs = ['//external_deps:or-tools-files'],
   cmd = 'cp -r $SRCS/or-tools/include $OUT',
   out = '.',
 )
 
 prebuilt_cxx_library(
   name = 'or-tools',
-  shared_lib = '//externalDeps:lib-or-tools',
-  header_dirs = ['//externalDeps:headers-or-tools'],
+  shared_lib = '//external_deps:lib-or-tools',
+  header_dirs = ['//external_deps:headers-or-tools'],
   preferred_linkage = 'shared',
   visibility = [
     'PUBLIC',
@@ -73,31 +73,31 @@ filegroup(
 
 genrule(
   name = 'build-folly',
-  srcs = ['//externalDeps:folly-files'],
+  srcs = ['//external_deps:folly-files'],
   cmd = '(cd ${SRCDIR}/folly-files/folly && python3 ./build/fbcode_builder/getdeps.py --allow-system-packages build --extra-cmake-defines=\'{"FOLLY_CXX_FLAGS": "-march=native", "CMAKE_CXX_FLAGS": "-O3"}\' --install-dir=./out) && cp -r ${SRCDIR}/folly-files/folly/out/. $OUT',
   out = '.',
 )
 
 genrule(
-  name = 'headers-folly', 
-  srcs = ['//externalDeps:build-folly'],
+  name = 'headers-folly',
+  srcs = ['//external_deps:build-folly'],
   cmd = 'cp -r $SRCS/include/folly $OUT',
   out = 'folly'
 )
 
 genrule(
-  name = 'lib-folly', 
-  srcs = ['//externalDeps:build-folly'],
+  name = 'lib-folly',
+  srcs = ['//external_deps:build-folly'],
   cmd = 'cp -r $SRCS/lib/libfolly.a $OUT',
   out = 'libfolly.a'
 )
 
 prebuilt_cxx_library(
   name = 'folly',
-  static_lib = '//externalDeps:lib-folly',
-  deps = ['//externalDeps:gtest'],
+  static_lib = '//external_deps:lib-folly',
+  deps = ['//external_deps:gtest'],
   header_namespace = '',
-  exported_headers = ['//externalDeps:headers-folly'],
+  exported_headers = ['//external_deps:headers-folly'],
   exported_linker_flags = ['-lfmt', '-lglog'],
   preferred_linkage = 'static',
   visibility = [
@@ -112,60 +112,23 @@ filegroup(
 
 genrule(
   name = 'build-unordered-dense',
-  srcs = ['//externalDeps:unordered-dense-files'],
+  srcs = ['//external_deps:unordered-dense-files'],
   cmd = 'cmake -S $SRCS/unordered_dense/. -B ./ -DCMAKE_INSTALL_PREFIX=$OUT -DCMAKE_CXX_FLAGS="-O2 -march=native" && cmake --build . --target install',
   out = '.',
 )
 
 genrule(
-  name = 'headers-unordered-dense', 
-  srcs = ['//externalDeps:build-unordered-dense'],
+  name = 'headers-unordered-dense',
+  srcs = ['//external_deps:build-unordered-dense'],
   cmd = 'cp -r $SRCS/include/ankerl $OUT',
   out = 'ankerl',
 )
 
-prebuilt_cxx_library (
+prebuilt_cxx_library(
   name = 'unordered-dense',
   header_only = True,
   header_namespace = '',
-  exported_headers = ['//externalDeps:headers-unordered-dense'],
-  visibility = [
-    'PUBLIC',
-  ],
-)
-
-filegroup(
-  name = 'abseil-files',
-  srcs = glob(['abseil-cpp/**/*.*'])
-)
-
-genrule(
-  name = 'build-abseil',
-  srcs = ['//externalDeps:abseil-files'],
-  cmd = '(cd $SRCS/abseil-cpp && cmake . -DBUILD_TESTING=OFF -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native" && make && make install) && cp -r $SRCS/abseil-cpp/out/. $OUT',
-  out = '.',
-)
-
-genrule(
-  name = 'headers-abseil', 
-  srcs = ['//externalDeps:build-abseil'],
-  cmd = 'cp -r $SRCS/include/absl $OUT',
-  out = 'absl',
-)
-
-genrule(
-  name = 'lib-abseil', 
-  srcs = ['//externalDeps:build-abseil'],
-  cmd = 'cp -r $SRCS/lib $OUT',
-  out = 'lib'
-)
-
-prebuilt_cxx_library(
-  name = 'abseil',
-  static_lib = '//externalDeps:lib-abseil',
-  header_namespace = '',
-  exported_headers = ['//externalDeps:headers-abseil'],
-  preferred_linkage = 'static',
+  exported_headers = ['//external_deps:headers-unordered-dense'],
   visibility = [
     'PUBLIC',
   ],
@@ -178,14 +141,14 @@ filegroup(
 
 genrule(
   name = 'build-protobuf',
-  srcs = ['//externalDeps:protobuf-files'],
-  cmd = '(cd $SRCS/protobuf && cmake . -Dprotobuf_ABSL_PROVIDER=package -DCMAKE_PREFIX_PATH=../../$(location //externalDeps:build-abseil)/lib/cmake/ -Dprotobuf_BUILD_TESTS=OFF -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native" && make && make install) && cp -r $SRCS/protobuf/out/. $OUT',
+  srcs = ['//external_deps:protobuf-files'],
+  cmd = '(cd $SRCS/protobuf && cmake . -Dprotobuf_ABSL_PROVIDER=package -DCMAKE_PREFIX_PATH=../../$(location //external_deps/abseil-cpp:build-abseil)/lib/cmake/ -Dprotobuf_BUILD_TESTS=OFF -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native" && make && make install) && cp -r $SRCS/protobuf/out/. $OUT',
   out = '.',
 )
 
 genrule(
   name = 'protoc',
-  srcs = ['//externalDeps:build-protobuf'],
+  srcs = ['//external_deps:build-protobuf'],
   cmd = 'cp $SRCS/bin/protoc $OUT',
   executable = True,
   out = 'protoc',
@@ -195,39 +158,38 @@ genrule(
 )
 
 genrule(
-  name = 'headers-protobuf-google', 
-  srcs = ['//externalDeps:build-protobuf'],
+  name = 'headers-protobuf-google',
+  srcs = ['//external_deps:build-protobuf'],
   cmd = 'cp -r $SRCS/include/google $OUT',
   out = 'google',
 )
 
 genrule(
-  name = 'headers-protobuf-utf8_range', 
-  srcs = ['//externalDeps:build-protobuf'],
+  name = 'headers-protobuf-utf8_range',
+  srcs = ['//external_deps:build-protobuf'],
   cmd = 'cp -r $SRCS/include/utf8_range.h $OUT',
   out = 'utf8_range.h',
 )
 
 genrule(
-  name = 'headers-protobuf-utf8_validity', 
-  srcs = ['//externalDeps:build-protobuf'],
+  name = 'headers-protobuf-utf8_validity',
+  srcs = ['//external_deps:build-protobuf'],
   cmd = 'cp -r $SRCS/include/utf8_validity.h $OUT',
   out = 'utf8_validity.h',
 )
 
 genrule(
-  name = 'lib-protobuf', 
-  srcs = ['//externalDeps:build-protobuf'],
+  name = 'lib-protobuf',
+  srcs = ['//external_deps:build-protobuf'],
   cmd = 'cp -r $SRCS/lib $OUT',
   out = 'lib',
 )
 
 prebuilt_cxx_library(
   name = 'protobuf',
-  static_lib = '//externalDeps:lib-protobuf',
-  header_namespace = '', 
-  exported_deps = ['//externalDeps:abseil'],
-  exported_headers = ['//externalDeps:headers-protobuf-google', '//externalDeps:headers-protobuf-utf8_range', '//externalDeps:headers-protobuf-utf8_validity'],
+  static_lib = '//external_deps:lib-protobuf',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-protobuf-google', '//external_deps:headers-protobuf-utf8_range', '//external_deps:headers-protobuf-utf8_validity'],
   preferred_linkage = 'static',
   visibility = [
     'PUBLIC',
@@ -241,14 +203,14 @@ filegroup(
 
 genrule(
   name = 'build-grpc',
-  srcs = ['//externalDeps:grpc-files'],
-  cmd = '(cd $SRCS/grpc && cmake . -DgRPC_ABSL_PROVIDER=package -DgRPC_PROTOBUF_PROVIDER=package -DCMAKE_PREFIX_PATH="../../$(location //externalDeps:build-abseil)/lib/cmake/;../../$(location //externalDeps:build-protobuf)/lib/cmake/" -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native" && make && make install) && cp -r $SRCS/grpc/out/. $OUT',
+  srcs = ['//external_deps:grpc-files'],
+  cmd = '(cd $SRCS/grpc && cmake . -DgRPC_ABSL_PROVIDER=package -DgRPC_PROTOBUF_PROVIDER=package -DCMAKE_PREFIX_PATH="../../$(location //external_deps/abseil-cpp:build-abseil)/lib/cmake/;../../$(location //external_deps:build-protobuf)/lib/cmake/" -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native" && make && make install) && cp -r $SRCS/grpc/out/. $OUT',
   out = '.',
 )
 
 genrule(
   name = 'bin-grpc',
-  srcs = ['//externalDeps:build-grpc'],
+  srcs = ['//external_deps:build-grpc'],
   cmd = 'cp -r $SRCS/bin $OUT',
   out = 'bin',
   visibility = [
@@ -258,90 +220,90 @@ genrule(
 
 genrule(
   name = 'lib-grpc',
-  srcs = ['//externalDeps:build-grpc'],
+  srcs = ['//external_deps:build-grpc'],
   cmd = 'cp -r $SRCS/lib $OUT',
   out = 'lib',
 )
 
 genrule(
   name = 'headers-grpc-grpc',
-  srcs = ['//externalDeps:build-grpc'],
+  srcs = ['//external_deps:build-grpc'],
   cmd = 'cp -r $SRCS/include/grpc $OUT',
   out = 'grpc',
 )
 
 genrule(
   name = 'headers-grpc-grpc++',
-  srcs = ['//externalDeps:build-grpc'],
+  srcs = ['//external_deps:build-grpc'],
   cmd = 'cp -r $SRCS/include/grpc++ $OUT',
   out = 'grpc++',
 )
 
 genrule(
   name = 'headers-grpc-grpcpp',
-  srcs = ['//externalDeps:build-grpc'],
+  srcs = ['//external_deps:build-grpc'],
   cmd = 'cp -r $SRCS/include/grpcpp $OUT',
   out = 'grpcpp',
 )
 
 genrule(
   name = 'headers-grpc-re2',
-  srcs = ['//externalDeps:build-grpc'],
+  srcs = ['//external_deps:build-grpc'],
   cmd = 'cp -r $SRCS/include/re2 $OUT',
   out = 're2',
 )
 
 genrule(
   name = 'headers-grpc-ares_build',
-  srcs = ['//externalDeps:build-grpc'],
+  srcs = ['//external_deps:build-grpc'],
   cmd = 'cp $SRCS/include/ares_build.h $OUT',
   out = 'ares_build.h',
 )
 
 genrule(
   name = 'headers-grpc-ares_dns',
-  srcs = ['//externalDeps:build-grpc'],
+  srcs = ['//external_deps:build-grpc'],
   cmd = 'cp $SRCS/include/ares_dns.h $OUT',
   out = 'ares_dns.h',
 )
 
 genrule(
   name = 'headers-grpc-ares_nameser',
-  srcs = ['//externalDeps:build-grpc'],
+  srcs = ['//external_deps:build-grpc'],
   cmd = 'cp $SRCS/include/ares_nameser.h $OUT',
   out = 'ares_nameser.h',
 )
 genrule(
   name = 'headers-grpc-ares_rules',
-  srcs = ['//externalDeps:build-grpc'],
+  srcs = ['//external_deps:build-grpc'],
   cmd = 'cp $SRCS/include/ares_rules.h $OUT',
   out = 'ares_rules.h',
 )
 
 genrule(
   name = 'headers-grpc-ares_version',
-  srcs = ['//externalDeps:build-grpc'],
+  srcs = ['//external_deps:build-grpc'],
   cmd = 'cp $SRCS/include/ares_version.h $OUT',
   out = 'ares_version.h',
 )
 
 genrule(
   name = 'headers-grpc-ares',
-  srcs = ['//externalDeps:build-grpc'],
+  srcs = ['//external_deps:build-grpc'],
   cmd = 'cp $SRCS/include/ares.h $OUT',
   out = 'ares.h',
 )
 
 genrule(
   name = 'headers-grpc-zconf',
-  srcs = ['//externalDeps:build-grpc'],
+  srcs = ['//external_deps:build-grpc'],
   cmd = 'cp $SRCS/include/zconf.h $OUT',
   out = 'zconf.h',
 )
 
 genrule(
   name = 'headers-grpc-zlib',
-  srcs = ['//externalDeps:build-grpc'],
+  srcs = ['//external_deps:build-grpc'],
   cmd = 'cp $SRCS/include/zlib.h $OUT',
   out = 'zlib.h',
 )
@@ -349,9 +311,22 @@ genrule(
 
 prebuilt_cxx_library(
   name = 'grpc',
-  static_lib = '//externalDeps:lib-grpc',
+  static_lib = '//external_deps:lib-grpc',
   header_namespace = '',
-  exported_headers = ['//externalDeps:headers-grpc-grpc', '//externalDeps:headers-grpc-grpc++', '//externalDeps:headers-grpc-grpcpp', '//externalDeps:headers-grpc-re2', '//externalDeps:headers-grpc-ares_build', '//externalDeps:headers-grpc-ares_dns', '//externalDeps:headers-grpc-ares_nameser', '//externalDeps:headers-grpc-ares_rules', '//externalDeps:headers-grpc-ares_version', '//externalDeps:headers-grpc-ares', '//externalDeps:headers-grpc-zconf', '//externalDeps:headers-grpc-zlib'],
+  exported_headers = [
+    '//external_deps:headers-grpc-grpc', 
+    '//external_deps:headers-grpc-grpc++', 
+    '//external_deps:headers-grpc-grpcpp',
+    '//external_deps:headers-grpc-re2', 
+    '//external_deps:headers-grpc-ares_build', 
+    '//external_deps:headers-grpc-ares_dns', 
+    '//external_deps:headers-grpc-ares_nameser', 
+    '//external_deps:headers-grpc-ares_rules', 
+    '//external_deps:headers-grpc-ares_version', 
+    '//external_deps:headers-grpc-ares', 
+    '//external_deps:headers-grpc-zconf', 
+    '//external_deps:headers-grpc-zlib'
+  ],
   preferred_linkage = 'static',
   visibility = [
     'PUBLIC',

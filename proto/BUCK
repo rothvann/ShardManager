@@ -1,7 +1,7 @@
 genrule(
   name = 'protos',
   srcs = ['ServiceDiscovery.proto'],
-  cmd = 'mkdir $OUT && $(exe //externalDeps:protoc) --plugin=protoc-gen-cpp-grpc=$(location //externalDeps:bin-grpc)/grpc_cpp_plugin --cpp-grpc_out=$OUT --cpp_out=$OUT *.proto',
+  cmd = 'mkdir $OUT && $(exe //external_deps:protoc) --plugin=protoc-gen-cpp-grpc=$(location //external_deps:bin-grpc)/grpc_cpp_plugin --cpp-grpc_out=$OUT --cpp_out=$OUT *.proto',
   out = 'proto'
 )
 
@@ -38,8 +38,8 @@ cxx_library(
   srcs = ['//proto:service_discovery_cc', '//proto:service_discovery_grpc_cc'],
   header_namespace = '',
   exported_headers = ['//proto:service_discovery_h', '//proto:service_discovery_grpc_h'],
-  deps = ['//externalDeps:protobuf', '//externalDeps:grpc'],
-  exported_deps = ['//externalDeps:protobuf', '//externalDeps:grpc'],
+  deps = ['//external_deps:protobuf', '//external_deps:grpc'],
+  exported_deps = ['//external_deps:protobuf', '//external_deps:grpc'],
   preferred_linkage = 'static',
   visibility = [
     'PUBLIC',

@@ -12,7 +12,7 @@ cxx_library(
     'MovementMap.h',
     'State.h',
   ],
-  exported_deps = ['//externalDeps:folly', '//externalDeps:unordered-dense', '//psychopomp:psychopomp_common', '//psychopomp/placer/utils:utils', '//proto:service_discovery_cpp'],
+  exported_deps = ['//external_deps:folly', '//external_deps:unordered-dense', '//psychopomp:psychopomp_common', '//psychopomp/placer/utils:utils', '//proto:service_discovery_cpp'],
   preferred_linkage = 'static',
   visibility = [
     'PUBLIC',

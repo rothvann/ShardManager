@@ -1,24 +1,24 @@
-[submodule "externalDeps/googletest"]
-	path = externalDeps/googletest
+[submodule "external_deps/googletest"]
+	path = external_deps/googletest
 	url = https://github.com/google/googletest
-[submodule "externalDeps/FlameGraph"]
-	path = externalDeps/FlameGraph
+[submodule "external_deps/FlameGraph"]
+	path = external_deps/FlameGraph
 	url = https://github.com/brendangregg/FlameGraph
-[submodule "externalDeps/folly"]
-	path = externalDeps/folly
+[submodule "external_deps/folly"]
+	path = external_deps/folly
 	url = https://github.com/facebook/folly.git
-[submodule "externalDeps/unordered_dense"]
-	path = externalDeps/unordered_dense
+[submodule "external_deps/unordered_dense"]
+	path = external_deps/unordered_dense
 	url = https://github.com/martinus/unordered_dense.git
 [submodule "prelude"]
 	path = prelude
 	url = https://github.com/facebook/buck2-prelude.git
-[submodule "externalDeps/protobuf"]
-	path = externalDeps/protobuf
+[submodule "external_deps/protobuf"]
+	path = external_deps/protobuf
 	url = https://github.com/protocolbuffers/protobuf.git
-[submodule "externalDeps/abseil-cpp"]
-	path = externalDeps/abseil-cpp
+[submodule "external_deps/abseil-cpp"]
+	path = external_deps/abseil-cpp
 	url = https://github.com/abseil/abseil-cpp.git
-[submodule "externalDeps/grpc"]
-	path = externalDeps/grpc
+[submodule "external_deps/grpc"]
+	path = external_deps/grpc
 	url = https://github.com/grpc/grpc.git

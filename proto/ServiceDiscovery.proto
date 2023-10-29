@@ -71,10 +71,20 @@ message HeartBeatResponse {
 message HeartBeatRequest {
 }
 
-service PyschopompService {
-    rpc registerHeartBeat(stream HeartBeatResponse) returns (stream HeartBeatRequest);
+message ServerMessage {
+    oneof message {
+        HeartBeatRequest heartbeat_request = 1;
+        ShardUpdateRequest shard_update_request = 2;
+    }
 }
 
-service PyschopompClient {
-    rpc updateShards(ShardUpdateRequest) returns (ShardUpdateResponse);
+message ClientMessage {
+    oneof message {
+        HeartBeatResponse heartbeat = 1;
+        ShardUpdateResponse shard_update_response = 2;
+    }
+}
+
+service Psychopomp {
+    rpc registerStream(stream ClientMessage) returns (stream ServerMessage);
 }
