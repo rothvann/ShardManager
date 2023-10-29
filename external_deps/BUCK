@@ -1,41 +1,4 @@
 filegroup(
-  name = 'gtest-files',
-  srcs = glob(['googletest/**/*.*'])
-)
-
-genrule(
-  name = 'build-gtest',
-  srcs = ['//external_deps:gtest-files'],
-  cmd = 'cmake -S $SRCS/googletest/. -B ./ -DCMAKE_INSTALL_PREFIX=$OUT -DGTEST_HAS_PTHREAD=1 && make && make install',
-  out = '.',
-)
-
-genrule(
-  name = 'headers-gtest',
-  srcs = ['//external_deps:build-gtest'],
-  cmd = 'cp -r $SRCS/include/gtest $OUT',
-  out = 'gtest'
-)
-
-genrule(
-  name = 'lib-gtest',
-  srcs = ['//external_deps:build-gtest'],
-  cmd = 'cp -r $SRCS/lib/libgtest.a $OUT',
-  out = 'libgtest.a'
-)
-
-prebuilt_cxx_library(
-  name = 'gtest',
-  static_lib = '//external_deps:lib-gtest',
-  header_namespace = '',
-  exported_headers = ['//external_deps:headers-gtest'],
-  preferred_linkage = 'static',
-  visibility = [
-    'PUBLIC',
-  ],
-)
-
-filegroup(
   name = 'or-tools-files',
   srcs = glob(
     include = ['or-tools/**/*.*'],
@@ -74,7 +37,7 @@ filegroup(
 genrule(
   name = 'build-folly',
   srcs = ['//external_deps:folly-files'],
-  cmd = '(cd ${SRCDIR}/folly-files/folly && python3 ./build/fbcode_builder/getdeps.py --allow-system-packages build --extra-cmake-defines=\'{"FOLLY_CXX_FLAGS": "-march=native", "CMAKE_CXX_FLAGS": "-O3"}\' --install-dir=./out) && cp -r ${SRCDIR}/folly-files/folly/out/. $OUT',
+  cmd = '(cd ${SRCDIR}/folly-files/folly && python3 ./build/fbcode_builder/getdeps.py --allow-system-packages build --extra-cmake-defines=\'{"FOLLY_CXX_FLAGS": "-O2;-fPIC;-march=native"}\' --install-dir=./out) && cp -r ${SRCDIR}/folly-files/folly/out/. $OUT',
   out = '.',
 )
 
@@ -142,7 +105,7 @@ filegroup(
 genrule(
   name = 'build-protobuf',
   srcs = ['//external_deps:protobuf-files'],
-  cmd = '(cd $SRCS/protobuf && cmake . -Dprotobuf_ABSL_PROVIDER=package -DCMAKE_PREFIX_PATH=../../$(location //external_deps/abseil-cpp:build-abseil)/lib/cmake/ -Dprotobuf_BUILD_TESTS=OFF -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native" && make && make install) && cp -r $SRCS/protobuf/out/. $OUT',
+  cmd = '(cd $SRCS/protobuf && cmake . -Dprotobuf_ABSL_PROVIDER=package -DCMAKE_PREFIX_PATH=../../$(location //external_deps:build-abseil)/lib/cmake/ -Dprotobuf_BUILD_TESTS=OFF -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native" && make && make install) && cp -r $SRCS/protobuf/out/. $OUT',
   out = '.',
 )
 
@@ -179,23 +142,61 @@ genrule(
 )
 
 genrule(
-  name = 'lib-protobuf',
+  name = 'lib-protobuf-protobuf',
   srcs = ['//external_deps:build-protobuf'],
-  cmd = 'cp -r $SRCS/lib $OUT',
-  out = 'lib',
+  cmd = 'cp -r $SRCS/lib/libprotobuf.a $OUT',
+  out = 'libprotobuf.a',
+)
+
+genrule(
+  name = 'lib-protobuf-utf8_range',
+  srcs = ['//external_deps:build-protobuf'],
+  cmd = 'cp -r $SRCS/lib/libutf8_range.a $OUT',
+  out = 'libutf8_range.a',
+)
+
+genrule(
+  name = 'lib-protobuf-utf8_validity',
+  srcs = ['//external_deps:build-protobuf'],
+  cmd = 'cp -r $SRCS/lib/libutf8_validity.a $OUT',
+  out = 'libutf8_validity.a',
 )
 
 prebuilt_cxx_library(
-  name = 'protobuf',
-  static_lib = '//external_deps:lib-protobuf',
+  name = 'protobuf-utf8_range',
+  static_lib = '//external_deps:lib-protobuf-utf8_range',
   header_namespace = '',
-  exported_headers = ['//external_deps:headers-protobuf-google', '//external_deps:headers-protobuf-utf8_range', '//external_deps:headers-protobuf-utf8_validity'],
+  exported_headers = ['//external_deps:headers-protobuf-utf8_range'],
   preferred_linkage = 'static',
   visibility = [
     'PUBLIC',
   ],
 )
 
+prebuilt_cxx_library(
+  name = 'protobuf-utf8_validity',
+  static_lib = '//external_deps:lib-protobuf-utf8_validity',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-protobuf-utf8_validity'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+prebuilt_cxx_library(
+  name = 'protobuf',
+  static_lib = '//external_deps:lib-protobuf-protobuf',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-protobuf-google'],
+  exported_deps = ['//external_deps:protobuf-utf8_range', '//external_deps:protobuf-utf8_validity'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+# GRPC
 filegroup(
   name = 'grpc-files',
   srcs = glob(['grpc/**/*.*'])
@@ -204,7 +205,7 @@ filegroup(
 genrule(
   name = 'build-grpc',
   srcs = ['//external_deps:grpc-files'],
-  cmd = '(cd $SRCS/grpc && cmake . -DgRPC_ABSL_PROVIDER=package -DgRPC_PROTOBUF_PROVIDER=package -DCMAKE_PREFIX_PATH="../../$(location //external_deps/abseil-cpp:build-abseil)/lib/cmake/;../../$(location //external_deps:build-protobuf)/lib/cmake/" -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native" && make && make install) && cp -r $SRCS/grpc/out/. $OUT',
+  cmd = '(cd $SRCS/grpc && cmake . -DgRPC_ABSL_PROVIDER=package -DgRPC_PROTOBUF_PROVIDER=package -DCMAKE_PREFIX_PATH="../../$(location //external_deps:build-abseil)/lib/cmake/;../../$(location //external_deps:build-protobuf)/lib/cmake/" -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native" && make && make install) && cp -r $SRCS/grpc/out/. $OUT',
   out = '.',
 )
 
@@ -219,10 +220,178 @@ genrule(
 )
 
 genrule(
-  name = 'lib-grpc',
+  name = 'lib-grpc-address_sorting',
   srcs = ['//external_deps:build-grpc'],
-  cmd = 'cp -r $SRCS/lib $OUT',
-  out = 'lib',
+  cmd = 'cp -r $SRCS/lib/libaddress_sorting.a $OUT',
+  out = 'libaddress_sorting.a',
+)
+    
+
+genrule(
+  name = 'lib-grpc-cares',
+  srcs = ['//external_deps:build-grpc'],
+  cmd = 'cp -r $SRCS/lib/libcares.a $OUT',
+  out = 'libcares.a',
+)
+    
+
+genrule(
+  name = 'lib-grpc-crypto',
+  srcs = ['//external_deps:build-grpc'],
+  cmd = 'cp -r $SRCS/lib/libcrypto.a $OUT',
+  out = 'libcrypto.a',
+)
+    
+
+genrule(
+  name = 'lib-grpc-gpr',
+  srcs = ['//external_deps:build-grpc'],
+  cmd = 'cp -r $SRCS/lib/libgpr.a $OUT',
+  out = 'libgpr.a',
+)
+    
+
+genrule(
+  name = 'lib-grpc-grpc_authorization_provider',
+  srcs = ['//external_deps:build-grpc'],
+  cmd = 'cp -r $SRCS/lib/libgrpc_authorization_provider.a $OUT',
+  out = 'libgrpc_authorization_provider.a',
+)
+    
+
+genrule(
+  name = 'lib-grpc-grpc_plugin_support',
+  srcs = ['//external_deps:build-grpc'],
+  cmd = 'cp -r $SRCS/lib/libgrpc_plugin_support.a $OUT',
+  out = 'libgrpc_plugin_support.a',
+)
+    
+
+genrule(
+  name = 'lib-grpc-grpc_unsecure',
+  srcs = ['//external_deps:build-grpc'],
+  cmd = 'cp -r $SRCS/lib/libgrpc_unsecure.a $OUT',
+  out = 'libgrpc_unsecure.a',
+)
+    
+
+genrule(
+  name = 'lib-grpc-grpc',
+  srcs = ['//external_deps:build-grpc'],
+  cmd = 'cp -r $SRCS/lib/libgrpc.a $OUT',
+  out = 'libgrpc.a',
+)
+    
+
+genrule(
+  name = 'lib-grpc-grpc++_alts',
+  srcs = ['//external_deps:build-grpc'],
+  cmd = 'cp -r $SRCS/lib/libgrpc++_alts.a $OUT',
+  out = 'libgrpc++_alts.a',
+)
+    
+
+genrule(
+  name = 'lib-grpc-grpc++_error_details',
+  srcs = ['//external_deps:build-grpc'],
+  cmd = 'cp -r $SRCS/lib/libgrpc++_error_details.a $OUT',
+  out = 'libgrpc++_error_details.a',
+)
+    
+
+genrule(
+  name = 'lib-grpc-grpc++_reflection',
+  srcs = ['//external_deps:build-grpc'],
+  cmd = 'cp -r $SRCS/lib/libgrpc++_reflection.a $OUT',
+  out = 'libgrpc++_reflection.a',
+)
+    
+
+genrule(
+  name = 'lib-grpc-grpc++_unsecure',
+  srcs = ['//external_deps:build-grpc'],
+  cmd = 'cp -r $SRCS/lib/libgrpc++_unsecure.a $OUT',
+  out = 'libgrpc++_unsecure.a',
+)
+    
+
+genrule(
+  name = 'lib-grpc-grpc++',
+  srcs = ['//external_deps:build-grpc'],
+  cmd = 'cp -r $SRCS/lib/libgrpc++.a $OUT',
+  out = 'libgrpc++.a',
+)
+    
+
+genrule(
+  name = 'lib-grpc-grcpp_channelz',
+  srcs = ['//external_deps:build-grpc'],
+  cmd = 'cp -r $SRCS/lib/libgrcpp_channelz.a $OUT',
+  out = 'libgrcpp_channelz.a',
+)
+    
+
+genrule(
+  name = 'lib-grpc-re2',
+  srcs = ['//external_deps:build-grpc'],
+  cmd = 'cp -r $SRCS/lib/libre2.a $OUT',
+  out = 'libre2.a',
+)
+    
+
+genrule(
+  name = 'lib-grpc-ssl',
+  srcs = ['//external_deps:build-grpc'],
+  cmd = 'cp -r $SRCS/lib/libssl.a $OUT',
+  out = 'libssl.a',
+)
+    
+
+genrule(
+  name = 'lib-grpc-upb_collections_lib',
+  srcs = ['//external_deps:build-grpc'],
+  cmd = 'cp -r $SRCS/lib/libupb_collections_lib.a $OUT',
+  out = 'libupb_collections_lib.a',
+)
+    
+
+genrule(
+  name = 'lib-grpc-upb_json_lib',
+  srcs = ['//external_deps:build-grpc'],
+  cmd = 'cp -r $SRCS/lib/libupb_json_lib.a $OUT',
+  out = 'libupb_json_lib.a',
+)
+    
+
+genrule(
+  name = 'lib-grpc-upb_textformat_lib',
+  srcs = ['//external_deps:build-grpc'],
+  cmd = 'cp -r $SRCS/lib/libupb_textformat_lib.a $OUT',
+  out = 'libupb_textformat_lib.a',
+)
+    
+
+genrule(
+  name = 'lib-grpc-upb',
+  srcs = ['//external_deps:build-grpc'],
+  cmd = 'cp -r $SRCS/lib/libupb.a $OUT',
+  out = 'libupb.a',
+)
+    
+
+genrule(
+  name = 'lib-grpc-utf8_range_lib',
+  srcs = ['//external_deps:build-grpc'],
+  cmd = 'cp -r $SRCS/lib/libutf8_range_lib.a $OUT',
+  out = 'libutf8_range_lib.a',
+)
+    
+
+genrule(
+  name = 'lib-grpc-z',
+  srcs = ['//external_deps:build-grpc'],
+  cmd = 'cp -r $SRCS/lib/libz.a $OUT',
+  out = 'libz.a',
 )
 
 genrule(
@@ -308,15 +477,222 @@ genrule(
   out = 'zlib.h',
 )
 
+prebuilt_cxx_library(
+  name = 'grpc-address_sorting',
+  static_lib = '//external_deps:lib-grpc-address_sorting',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'grpc-cares',
+  static_lib = '//external_deps:lib-grpc-cares',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'grpc-crypto',
+  static_lib = '//external_deps:lib-grpc-crypto',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'grpc-gpr',
+  static_lib = '//external_deps:lib-grpc-gpr',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'grpc-grpc_authorization_provider',
+  static_lib = '//external_deps:lib-grpc-grpc_authorization_provider',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'grpc-grpc_plugin_support',
+  static_lib = '//external_deps:lib-grpc-grpc_plugin_support',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'grpc-grpc_unsecure',
+  static_lib = '//external_deps:lib-grpc-grpc_unsecure',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+prebuilt_cxx_library(
+  name = 'grpc-grpc++_alts',
+  static_lib = '//external_deps:lib-grpc-grpc++_alts',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'grpc-grpc++_error_details',
+  static_lib = '//external_deps:lib-grpc-grpc++_error_details',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'grpc-grpc++_reflection',
+  static_lib = '//external_deps:lib-grpc-grpc++_reflection',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'grpc-grpc++_unsecure',
+  static_lib = '//external_deps:lib-grpc-grpc++_unsecure',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'grpc-grpc++',
+  static_lib = '//external_deps:lib-grpc-grpc++',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'grpc-grcpp_channelz',
+  static_lib = '//external_deps:lib-grpc-grcpp_channelz',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'grpc-re2',
+  static_lib = '//external_deps:lib-grpc-re2',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'grpc-ssl',
+  static_lib = '//external_deps:lib-grpc-ssl',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'grpc-upb_collections_lib',
+  static_lib = '//external_deps:lib-grpc-upb_collections_lib',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'grpc-upb_json_lib',
+  static_lib = '//external_deps:lib-grpc-upb_json_lib',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'grpc-upb_textformat_lib',
+  static_lib = '//external_deps:lib-grpc-upb_textformat_lib',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'grpc-upb',
+  static_lib = '//external_deps:lib-grpc-upb',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'grpc-utf8_range_lib',
+  static_lib = '//external_deps:lib-grpc-utf8_range_lib',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'grpc-z',
+  static_lib = '//external_deps:lib-grpc-z',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
 
 prebuilt_cxx_library(
   name = 'grpc',
-  static_lib = '//external_deps:lib-grpc',
+  static_lib = '//external_deps:lib-grpc-grpc',
   header_namespace = '',
   exported_headers = [
     '//external_deps:headers-grpc-grpc', 
     '//external_deps:headers-grpc-grpc++', 
-    '//external_deps:headers-grpc-grpcpp',
+    '//external_deps:headers-grpc-grpcpp', 
     '//external_deps:headers-grpc-re2', 
     '//external_deps:headers-grpc-ares_build', 
     '//external_deps:headers-grpc-ares_dns', 
@@ -325,7 +701,32 @@ prebuilt_cxx_library(
     '//external_deps:headers-grpc-ares_version', 
     '//external_deps:headers-grpc-ares', 
     '//external_deps:headers-grpc-zconf', 
-    '//external_deps:headers-grpc-zlib'
+    '//external_deps:headers-grpc-zlib' ,
+  ],
+  exported_deps = [
+    '//external_deps:abseil-string_view',
+    '//external_deps:lib-grpc-address_sorting',
+    '//external_deps:lib-grpc-cares',
+    '//external_deps:lib-grpc-crypto',
+    '//external_deps:lib-grpc-gpr',
+    '//external_deps:lib-grpc-grpc_authorization_provider',
+    '//external_deps:lib-grpc-grpc_plugin_support',
+    '//external_deps:lib-grpc-grpc_unsecure',
+    '//external_deps:lib-grpc-grpc',
+    '//external_deps:lib-grpc-grpc++_alts',
+    '//external_deps:lib-grpc-grpc++_error_details',
+    '//external_deps:lib-grpc-grpc++_reflection',
+    '//external_deps:lib-grpc-grpc++_unsecure',
+    '//external_deps:lib-grpc-grpc++',
+    '//external_deps:lib-grpc-grcpp_channelz',
+    '//external_deps:lib-grpc-re2',
+    '//external_deps:lib-grpc-ssl',
+    '//external_deps:lib-grpc-upb_collections_lib',
+    '//external_deps:lib-grpc-upb_json_lib',
+    '//external_deps:lib-grpc-upb_textformat_lib',
+    '//external_deps:lib-grpc-upb',
+    '//external_deps:lib-grpc-utf8_range_lib',
+    '//external_deps:lib-grpc-z'
   ],
   preferred_linkage = 'static',
   visibility = [
@@ -333,3 +734,1787 @@ prebuilt_cxx_library(
   ],
 )
 
+# GTEST
+filegroup(
+  name = 'gtest-files',
+  srcs = glob(['googletest/**/*.*'])
+)
+
+genrule(
+  name = 'build-gtest',
+  srcs = ['//external_deps:gtest-files'],
+  cmd = 'cmake -S $SRCS/googletest/. -B ./ -DCMAKE_CXX_FLAGS="-O2 -march=native" -DCMAKE_INSTALL_PREFIX=$OUT -DGTEST_HAS_PTHREAD=1 && make && make install',
+  out = '.',
+)
+
+genrule(
+  name = 'headers-gtest',
+  srcs = ['//external_deps:build-gtest'],
+  cmd = 'cp -r $SRCS/include/gtest $OUT',
+  out = 'gtest'
+)
+
+genrule(
+  name = 'lib-gtest',
+  srcs = ['//external_deps:build-gtest'],
+  cmd = 'cp -r $SRCS/lib/libgtest.a $OUT',
+  out = 'libgtest.a'
+)
+
+prebuilt_cxx_library(
+  name = 'gtest',
+  static_lib = '//external_deps:lib-gtest',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-gtest'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+
+# ABSEIL 
+filegroup(
+  name = 'abseil-files',
+  srcs = glob(['abseil-cpp/**/*.*'])
+)
+
+
+genrule(
+  name = 'build-abseil',
+  srcs = ['//external_deps:abseil-files'],
+  cmd = '(cd $SRCS/abseil-cpp && cmake . -DBUILD_TESTING=OFF -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native" && make && make install) && cp -r $SRCS/abseil-cpp/out/. $OUT',
+  out = '.',
+  visibility = [
+  'PUBLIC',
+  ],
+)
+
+
+genrule(
+  name = 'headers-abseil',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/include/absl $OUT',
+  out = 'absl',
+)
+
+
+genrule(
+  name = 'lib-abseil-bad_any_cast_impl',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_bad_any_cast_impl.a $OUT',
+  out = 'libabsl_bad_any_cast_impl.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-bad_optional_access',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_bad_optional_access.a $OUT',
+  out = 'libabsl_bad_optional_access.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-bad_variant_access',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_bad_variant_access.a $OUT',
+  out = 'libabsl_bad_variant_access.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-base',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_base.a $OUT',
+  out = 'libabsl_base.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-city',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_city.a $OUT',
+  out = 'libabsl_city.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-civil_time',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_civil_time.a $OUT',
+  out = 'libabsl_civil_time.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-cord_internal',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_cord_internal.a $OUT',
+  out = 'libabsl_cord_internal.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-cord',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_cord.a $OUT',
+  out = 'libabsl_cord.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-cordz_functions',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_cordz_functions.a $OUT',
+  out = 'libabsl_cordz_functions.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-cordz_info',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_cordz_info.a $OUT',
+  out = 'libabsl_cordz_info.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-cordz_sample_token',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_cordz_sample_token.a $OUT',
+  out = 'libabsl_cordz_sample_token.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-crc_cord_state',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_crc_cord_state.a $OUT',
+  out = 'libabsl_crc_cord_state.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-crc_cpu_state',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_crc_cpu_state.a $OUT',
+  out = 'libabsl_crc_cpu_state.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-crc_cpu_detect',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_crc_cpu_detect.a $OUT',
+  out = 'libabsl_crc_cpu_detect.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-crc_internal',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_crc_internal.a $OUT',
+  out = 'libabsl_crc_internal.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-crc32c',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_crc32c.a $OUT',
+  out = 'libabsl_crc32c.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-debugging_internal',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_debugging_internal.a $OUT',
+  out = 'libabsl_debugging_internal.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-demangle_internal',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_demangle_internal.a $OUT',
+  out = 'libabsl_demangle_internal.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-die_if_null',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_die_if_null.a $OUT',
+  out = 'libabsl_die_if_null.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-examine_stack',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_examine_stack.a $OUT',
+  out = 'libabsl_examine_stack.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-exponential_biased',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_exponential_biased.a $OUT',
+  out = 'libabsl_exponential_biased.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-failure_signal_handler',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_failure_signal_handler.a $OUT',
+  out = 'libabsl_failure_signal_handler.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-flags_commandlineflag_internal',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_flags_commandlineflag_internal.a $OUT',
+  out = 'libabsl_flags_commandlineflag_internal.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-flags_commandlineflag',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_flags_commandlineflag.a $OUT',
+  out = 'libabsl_flags_commandlineflag.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-flags_config',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_flags_config.a $OUT',
+  out = 'libabsl_flags_config.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-flags_internal',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_flags_internal.a $OUT',
+  out = 'libabsl_flags_internal.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-flags_marshalling',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_flags_marshalling.a $OUT',
+  out = 'libabsl_flags_marshalling.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-flags_parse',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_flags_parse.a $OUT',
+  out = 'libabsl_flags_parse.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-flags_private_handle_accessor',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_flags_private_handle_accessor.a $OUT',
+  out = 'libabsl_flags_private_handle_accessor.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-flags_program_name',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_flags_program_name.a $OUT',
+  out = 'libabsl_flags_program_name.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-flags_reflection',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_flags_reflection.a $OUT',
+  out = 'libabsl_flags_reflection.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-flags_usage_internal',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_flags_usage_internal.a $OUT',
+  out = 'libabsl_flags_usage_internal.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-flags_usage',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_flags_usage.a $OUT',
+  out = 'libabsl_flags_usage.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-flags',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_flags.a $OUT',
+  out = 'libabsl_flags.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-graphcycles_internal',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_graphcycles_internal.a $OUT',
+  out = 'libabsl_graphcycles_internal.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-hash',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_hash.a $OUT',
+  out = 'libabsl_hash.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-hashtablez_sampler',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_hashtablez_sampler.a $OUT',
+  out = 'libabsl_hashtablez_sampler.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-int128',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_int128.a $OUT',
+  out = 'libabsl_int128.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-kernel_timeout_internal',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_kernel_timeout_internal.a $OUT',
+  out = 'libabsl_kernel_timeout_internal.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-leak_check',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_leak_check.a $OUT',
+  out = 'libabsl_leak_check.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-log_entry',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_log_entry.a $OUT',
+  out = 'libabsl_log_entry.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-log_flags',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_log_flags.a $OUT',
+  out = 'libabsl_log_flags.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-log_globals',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_log_globals.a $OUT',
+  out = 'libabsl_log_globals.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-log_initialize',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_log_initialize.a $OUT',
+  out = 'libabsl_log_initialize.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-log_internal_check_op',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_log_internal_check_op.a $OUT',
+  out = 'libabsl_log_internal_check_op.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-log_internal_conditions',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_log_internal_conditions.a $OUT',
+  out = 'libabsl_log_internal_conditions.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-log_internal_fnmatch',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_log_internal_fnmatch.a $OUT',
+  out = 'libabsl_log_internal_fnmatch.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-log_internal_format',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_log_internal_format.a $OUT',
+  out = 'libabsl_log_internal_format.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-log_internal_globals',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_log_internal_globals.a $OUT',
+  out = 'libabsl_log_internal_globals.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-log_internal_log_sink_set',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_log_internal_log_sink_set.a $OUT',
+  out = 'libabsl_log_internal_log_sink_set.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-log_internal_message',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_log_internal_message.a $OUT',
+  out = 'libabsl_log_internal_message.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-log_internal_nullguard',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_log_internal_nullguard.a $OUT',
+  out = 'libabsl_log_internal_nullguard.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-log_internal_proto',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_log_internal_proto.a $OUT',
+  out = 'libabsl_log_internal_proto.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-log_severity',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_log_severity.a $OUT',
+  out = 'libabsl_log_severity.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-log_sink',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_log_sink.a $OUT',
+  out = 'libabsl_log_sink.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-low_level_hash',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_low_level_hash.a $OUT',
+  out = 'libabsl_low_level_hash.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-malloc_internal',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_malloc_internal.a $OUT',
+  out = 'libabsl_malloc_internal.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-periodic_sampler',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_periodic_sampler.a $OUT',
+  out = 'libabsl_periodic_sampler.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-random_distributions',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_random_distributions.a $OUT',
+  out = 'libabsl_random_distributions.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-random_internal_distribution_test_util',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_random_internal_distribution_test_util.a $OUT',
+  out = 'libabsl_random_internal_distribution_test_util.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-random_internal_platform',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_random_internal_platform.a $OUT',
+  out = 'libabsl_random_internal_platform.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-random_internal_pool_urbg',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_random_internal_pool_urbg.a $OUT',
+  out = 'libabsl_random_internal_pool_urbg.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-random_internal_randen_hwaes_impl',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_random_internal_randen_hwaes_impl.a $OUT',
+  out = 'libabsl_random_internal_randen_hwaes_impl.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-random_internal_randen_hwaes',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_random_internal_randen_hwaes.a $OUT',
+  out = 'libabsl_random_internal_randen_hwaes.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-random_internal_randen_slow',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_random_internal_randen_slow.a $OUT',
+  out = 'libabsl_random_internal_randen_slow.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-random_internal_randen',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_random_internal_randen.a $OUT',
+  out = 'libabsl_random_internal_randen.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-random_internal_seed_material',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_random_internal_seed_material.a $OUT',
+  out = 'libabsl_random_internal_seed_material.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-random_seed_gen_exception',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_random_seed_gen_exception.a $OUT',
+  out = 'libabsl_random_seed_gen_exception.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-random_seed_sequences',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_random_seed_sequences.a $OUT',
+  out = 'libabsl_random_seed_sequences.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-raw_hash_set',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_raw_hash_set.a $OUT',
+  out = 'libabsl_raw_hash_set.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-raw_logging_internal',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_raw_logging_internal.a $OUT',
+  out = 'libabsl_raw_logging_internal.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-scoped_set_env',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_scoped_set_env.a $OUT',
+  out = 'libabsl_scoped_set_env.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-spinlock_wait',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_spinlock_wait.a $OUT',
+  out = 'libabsl_spinlock_wait.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-stacktrace',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_stacktrace.a $OUT',
+  out = 'libabsl_stacktrace.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-status',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_status.a $OUT',
+  out = 'libabsl_status.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-statusor',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_statusor.a $OUT',
+  out = 'libabsl_statusor.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-str_format_internal',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_str_format_internal.a $OUT',
+  out = 'libabsl_str_format_internal.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-strerror',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_strerror.a $OUT',
+  out = 'libabsl_strerror.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-string_view',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_string_view.a $OUT',
+  out = 'libabsl_string_view.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-strings_internal',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_strings_internal.a $OUT',
+  out = 'libabsl_strings_internal.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-strings',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_strings.a $OUT',
+  out = 'libabsl_strings.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-symbolize',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_symbolize.a $OUT',
+  out = 'libabsl_symbolize.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-synchronization',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_synchronization.a $OUT',
+  out = 'libabsl_synchronization.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-throw_delegate',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_throw_delegate.a $OUT',
+  out = 'libabsl_throw_delegate.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-time_zone',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_time_zone.a $OUT',
+  out = 'libabsl_time_zone.a'
+)
+    
+
+genrule(
+  name = 'lib-abseil-time',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_time.a $OUT',
+  out = 'libabsl_time.a'
+)
+
+
+prebuilt_cxx_library(
+  name = 'abseil-bad_any_cast_impl',
+  static_lib = '//external_deps:lib-abseil-bad_any_cast_impl',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-bad_optional_access',
+  static_lib = '//external_deps:lib-abseil-bad_optional_access',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-bad_variant_access',
+  static_lib = '//external_deps:lib-abseil-bad_variant_access',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-base',
+  static_lib = '//external_deps:lib-abseil-base',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-city',
+  static_lib = '//external_deps:lib-abseil-city',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-civil_time',
+  static_lib = '//external_deps:lib-abseil-civil_time',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-cord_internal',
+  static_lib = '//external_deps:lib-abseil-cord_internal',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-cord',
+  static_lib = '//external_deps:lib-abseil-cord',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-cordz_functions',
+  static_lib = '//external_deps:lib-abseil-cordz_functions',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-cordz_info',
+  static_lib = '//external_deps:lib-abseil-cordz_info',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-cordz_sample_token',
+  static_lib = '//external_deps:lib-abseil-cordz_sample_token',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-crc_cord_state',
+  static_lib = '//external_deps:lib-abseil-crc_cord_state',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-crc_cpu_state',
+  static_lib = '//external_deps:lib-abseil-crc_cpu_state',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-crc_cpu_detect',
+  static_lib = '//external_deps:lib-abseil-crc_cpu_detect',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-crc_internal',
+  static_lib = '//external_deps:lib-abseil-crc_internal',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-crc32c',
+  static_lib = '//external_deps:lib-abseil-crc32c',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-debugging_internal',
+  static_lib = '//external_deps:lib-abseil-debugging_internal',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-demangle_internal',
+  static_lib = '//external_deps:lib-abseil-demangle_internal',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-die_if_null',
+  static_lib = '//external_deps:lib-abseil-die_if_null',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-examine_stack',
+  static_lib = '//external_deps:lib-abseil-examine_stack',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-exponential_biased',
+  static_lib = '//external_deps:lib-abseil-exponential_biased',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-failure_signal_handler',
+  static_lib = '//external_deps:lib-abseil-failure_signal_handler',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-flags_commandlineflag_internal',
+  static_lib = '//external_deps:lib-abseil-flags_commandlineflag_internal',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-flags_commandlineflag',
+  static_lib = '//external_deps:lib-abseil-flags_commandlineflag',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-flags_config',
+  static_lib = '//external_deps:lib-abseil-flags_config',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-flags_internal',
+  static_lib = '//external_deps:lib-abseil-flags_internal',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-flags_marshalling',
+  static_lib = '//external_deps:lib-abseil-flags_marshalling',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-flags_parse',
+  static_lib = '//external_deps:lib-abseil-flags_parse',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-flags_private_handle_accessor',
+  static_lib = '//external_deps:lib-abseil-flags_private_handle_accessor',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-flags_program_name',
+  static_lib = '//external_deps:lib-abseil-flags_program_name',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-flags_reflection',
+  static_lib = '//external_deps:lib-abseil-flags_reflection',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-flags_usage_internal',
+  static_lib = '//external_deps:lib-abseil-flags_usage_internal',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-flags_usage',
+  static_lib = '//external_deps:lib-abseil-flags_usage',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-flags',
+  static_lib = '//external_deps:lib-abseil-flags',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-graphcycles_internal',
+  static_lib = '//external_deps:lib-abseil-graphcycles_internal',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-hash',
+  static_lib = '//external_deps:lib-abseil-hash',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-hashtablez_sampler',
+  static_lib = '//external_deps:lib-abseil-hashtablez_sampler',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-int128',
+  static_lib = '//external_deps:lib-abseil-int128',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-kernel_timeout_internal',
+  static_lib = '//external_deps:lib-abseil-kernel_timeout_internal',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-leak_check',
+  static_lib = '//external_deps:lib-abseil-leak_check',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-log_entry',
+  static_lib = '//external_deps:lib-abseil-log_entry',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-log_flags',
+  static_lib = '//external_deps:lib-abseil-log_flags',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-log_globals',
+  static_lib = '//external_deps:lib-abseil-log_globals',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-log_initialize',
+  static_lib = '//external_deps:lib-abseil-log_initialize',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-log_internal_check_op',
+  static_lib = '//external_deps:lib-abseil-log_internal_check_op',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-log_internal_conditions',
+  static_lib = '//external_deps:lib-abseil-log_internal_conditions',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-log_internal_fnmatch',
+  static_lib = '//external_deps:lib-abseil-log_internal_fnmatch',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-log_internal_format',
+  static_lib = '//external_deps:lib-abseil-log_internal_format',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-log_internal_globals',
+  static_lib = '//external_deps:lib-abseil-log_internal_globals',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-log_internal_log_sink_set',
+  static_lib = '//external_deps:lib-abseil-log_internal_log_sink_set',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-log_internal_message',
+  static_lib = '//external_deps:lib-abseil-log_internal_message',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-log_internal_nullguard',
+  static_lib = '//external_deps:lib-abseil-log_internal_nullguard',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-log_internal_proto',
+  static_lib = '//external_deps:lib-abseil-log_internal_proto',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-log_severity',
+  static_lib = '//external_deps:lib-abseil-log_severity',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-log_sink',
+  static_lib = '//external_deps:lib-abseil-log_sink',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-low_level_hash',
+  static_lib = '//external_deps:lib-abseil-low_level_hash',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-malloc_internal',
+  static_lib = '//external_deps:lib-abseil-malloc_internal',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-periodic_sampler',
+  static_lib = '//external_deps:lib-abseil-periodic_sampler',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-random_distributions',
+  static_lib = '//external_deps:lib-abseil-random_distributions',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-random_internal_distribution_test_util',
+  static_lib = '//external_deps:lib-abseil-random_internal_distribution_test_util',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-random_internal_platform',
+  static_lib = '//external_deps:lib-abseil-random_internal_platform',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-random_internal_pool_urbg',
+  static_lib = '//external_deps:lib-abseil-random_internal_pool_urbg',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-random_internal_randen_hwaes_impl',
+  static_lib = '//external_deps:lib-abseil-random_internal_randen_hwaes_impl',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-random_internal_randen_hwaes',
+  static_lib = '//external_deps:lib-abseil-random_internal_randen_hwaes',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-random_internal_randen_slow',
+  static_lib = '//external_deps:lib-abseil-random_internal_randen_slow',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-random_internal_randen',
+  static_lib = '//external_deps:lib-abseil-random_internal_randen',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-random_internal_seed_material',
+  static_lib = '//external_deps:lib-abseil-random_internal_seed_material',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-random_seed_gen_exception',
+  static_lib = '//external_deps:lib-abseil-random_seed_gen_exception',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-random_seed_sequences',
+  static_lib = '//external_deps:lib-abseil-random_seed_sequences',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-raw_hash_set',
+  static_lib = '//external_deps:lib-abseil-raw_hash_set',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-raw_logging_internal',
+  static_lib = '//external_deps:lib-abseil-raw_logging_internal',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-scoped_set_env',
+  static_lib = '//external_deps:lib-abseil-scoped_set_env',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-spinlock_wait',
+  static_lib = '//external_deps:lib-abseil-spinlock_wait',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-stacktrace',
+  static_lib = '//external_deps:lib-abseil-stacktrace',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-status',
+  static_lib = '//external_deps:lib-abseil-status',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-statusor',
+  static_lib = '//external_deps:lib-abseil-statusor',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-str_format_internal',
+  static_lib = '//external_deps:lib-abseil-str_format_internal',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-strerror',
+  static_lib = '//external_deps:lib-abseil-strerror',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-string_view',
+  static_lib = '//external_deps:lib-abseil-string_view',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-strings_internal',
+  static_lib = '//external_deps:lib-abseil-strings_internal',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-strings',
+  static_lib = '//external_deps:lib-abseil-strings',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-symbolize',
+  static_lib = '//external_deps:lib-abseil-symbolize',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-synchronization',
+  static_lib = '//external_deps:lib-abseil-synchronization',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-throw_delegate',
+  static_lib = '//external_deps:lib-abseil-throw_delegate',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-time_zone',
+  static_lib = '//external_deps:lib-abseil-time_zone',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+    
+
+prebuilt_cxx_library(
+  name = 'abseil-time',
+  static_lib = '//external_deps:lib-abseil-time',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+  

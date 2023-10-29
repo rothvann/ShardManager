@@ -16,7 +16,7 @@ class ServiceConnections {
   void add(void* tag, std::string serviceName);
   void remove(void* tag);
 
-  SyncedConnections getConnections();
+  SyncedConnections getConnections(std::string serviceName);
 
  private:
   folly::Synchronized<std::unordered_map<std::string, SyncedConnections>>
