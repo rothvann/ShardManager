@@ -1,7 +1,6 @@
 cxx_library(
     name = 'server_utils',
     srcs = [
-        'AsyncServer.cpp',
     ],
     exported_headers = [
         'AsyncServer.h',
