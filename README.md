@@ -1,2 +1,2 @@
 # Setup
-```sudo bash setup.sh```
+```bash setup.sh```
