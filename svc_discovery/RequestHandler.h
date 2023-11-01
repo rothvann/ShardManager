@@ -18,13 +18,18 @@ struct RequestHandlerTag {
 class RequestHandler {
  public:
   enum class OpStatus { INACTIVE, WAITING };
+  enum class HandlerStatus { ACTIVE, STOPPING, STOPPED };
 
   RequestHandler(Psychopomp::AsyncService* service,
                  grpc::ServerCompletionQueue* completionQueue);
 
   void process(RequestHandlerTag::Op op, bool ok);
 
-  void sendMessage(const ServerMessage& message);
+  bool sendMessage(const ServerMessage& message);
+
+  void stop();
+
+  bool hasStopped() const;
 
  private:
   void* getOpTag(RequestHandlerTag::Op op) const;
@@ -40,5 +45,6 @@ class RequestHandler {
   std::vector<std::unique_ptr<RequestHandlerTag>> requestHandlerTags_;
 
   std::queue<ServerMessage> writeQueue_;
+  HandlerStatus status_;
 };
 }  // namespace psychopomp

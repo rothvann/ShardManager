@@ -26,10 +26,11 @@ class HandlerManager
 
   void process(void* handlerTag, bool ok) override;
 
-  std::shared_ptr<SyncedRequestHandler> getSyncedRequestHandler(
-      void* tag);
+  std::shared_ptr<SyncedRequestHandler> getSyncedRequestHandler(void* tag);
 
  private:
+  void removeSyncedRequestHandler(void* tag);
+
   std::shared_ptr<ServiceConnections> svcConnections_;
   folly::Synchronized<
       std::unordered_map<void*, std::shared_ptr<SyncedRequestHandler>>>

@@ -3,12 +3,14 @@
 namespace psychopomp {
 
 RequestHandler::RequestHandler(Psychopomp::AsyncService* service,
-                               grpc::ServerCompletionQueue* completionQueue) {
+                               grpc::ServerCompletionQueue* completionQueue)
+    : hasEnded(false) {
   stream_.reset(
       new grpc::ServerAsyncReaderWriter<ServerMessage, ClientMessage>(&ctx_));
   service->RequestregisterStream(&ctx_, stream_.get(), completionQueue,
-                                 completionQueue, getOpTag(RequestHandlerTag::Op::CONNECT));
-  
+                                 completionQueue,
+                                 getOpTag(RequestHandlerTag::Op::CONNECT));
+
   requestHandlerTags_.emplace_back(new RequestHandlerTag{
       reinterpret_cast<void*>(this), RequestHandlerTag::Op::CONNECT});
   requestHandlerTags_.emplace_back(new RequestHandlerTag{
@@ -46,6 +48,12 @@ void RequestHandler::process(RequestHandlerTag::Op op, bool ok) {
       opStatusMap_[RequestHandlerTag::Op::WRITE] = OpStatus::INACTIVE;
       writeQueue_.pop();
 
+      if (status_ == HandlerStatus::STOPPING && writeQueue_.empty()) {
+        stream_->Finish(grpc::Status::OK,
+                        getOpTag(RequestHandlerTag::Op::FINISH));
+        break;
+      }
+
       // Process finished write
       std::cout << "Wrote message to stream" << std::endl;
 
@@ -56,29 +64,48 @@ void RequestHandler::process(RequestHandlerTag::Op op, bool ok) {
       /*
       Logging etc
       */
+      status_ = HandlerStatus::STOPPED;
       break;
   }
 }
 
-void RequestHandler::sendMessage(const ServerMessage& message) {
+bool RequestHandler::sendMessage(const ServerMessage& message) {
+  if (status_ == HandlerStatus::STOPPING || status_ == HandlerStatus::STOPPED) {
+    return false;
+  }
   writeQueue_.emplace(message);
   attemptSendMessage();
+  return true;
 }
 
+void RequestHandler::stop() {
+  status_ = HandlerStatus::STOPPING;
+  if (!writeQueue_.empty()) {
+    return;
+  }
+  stream_->Finish(grpc::Status::OK, getOpTag(RequestHandlerTag::Op::FINISH));
+}
 
 void* RequestHandler::getOpTag(RequestHandlerTag::Op op) const {
   auto& ptr = requestHandlerTags_[static_cast<int>(op)];
   return reinterpret_cast<void*>(ptr.get());
 }
 
-
 void RequestHandler::attemptSendMessage() {
-  if(opStatusMap_[RequestHandlerTag::Op::WRITE] == OpStatus::INACTIVE) {
-    if(writeQueue_.empty()) {
-      return;
-    }
-    auto message = writeQueue_.front();
-    stream_->Write(message, getOpTag(RequestHandlerTag::Op::WRITE));
+  if (status_ == HandlerStatus::STOPPING || status_ == HandlerStatus::STOPPED) {
+    return;
   }
+  if (opStatusMap_[RequestHandlerTag::Op::WRITE] != OpStatus::INACTIVE) {
+    return;
+  }
+  if (writeQueue_.empty()) {
+    return;
+  }
+  auto message = writeQueue_.front();
+  stream_->Write(message, getOpTag(RequestHandlerTag::Op::WRITE));
+}
+
+bool RequestHandler::hasStopped() const {
+  return status_ == HandlerStatus::STOPPED;
 }
 }  // namespace psychopomp
