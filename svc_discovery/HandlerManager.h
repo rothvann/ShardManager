@@ -14,25 +14,25 @@
 #include "svc_discovery/ServiceConnections.h"
 
 namespace psychopomp {
+typedef folly::Synchronized<RequestHandler> SyncedRequestHandler;
+
 class HandlerManager
     : public server_utils::HandlerManager<Psychopomp::AsyncService> {
  public:
-  typedef std::shared_ptr<folly::Synchronized<RequestHandler>>
-      SyncedRequestHandler;
-
   HandlerManager(std::shared_ptr<ServiceConnections> svcConnections);
 
   void addHandler(Psychopomp::AsyncService* service,
                   grpc::ServerCompletionQueue* completionQueue) override;
 
-  void process(void* tag) override;
-  void removeHandler(void* tag) override;
+  void process(void* handlerTag, bool ok) override;
 
-  std::optional<SyncedRequestHandler> getSyncedRequestHandler(void* tag);
+  std::shared_ptr<SyncedRequestHandler> getSyncedRequestHandler(
+      void* tag);
 
  private:
   std::shared_ptr<ServiceConnections> svcConnections_;
-  folly::Synchronized<std::unordered_map<void*, SyncedRequestHandler>>
+  folly::Synchronized<
+      std::unordered_map<void*, std::shared_ptr<SyncedRequestHandler>>>
       requestHandlerMap_;
 };
 }  // namespace psychopomp

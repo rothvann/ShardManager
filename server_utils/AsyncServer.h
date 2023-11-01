@@ -42,12 +42,13 @@ class AsyncServer {
           auto& completionQueue = completionQueues_[i];
           requestHandlerManager_->addHandler(service_, completionQueue);
 
-          completionQueue->Next(&tag, &ok);
-          if (!ok) {
-            requestHandlerManager_->removeHandler(tag);
-          } else {
-            requestHandlerManager_->process(tag);
+          bool shutdown = completionQueue->Next(&tag, &ok);
+          
+          if(shutdown) {
+            break;
           }
+
+          requestHandlerManager_->process(tag, ok);
         }
       });
     }
@@ -56,10 +57,6 @@ class AsyncServer {
 
  private:
   void init() {
-    {
-      auto runPtr = shouldRun_.wlock();
-      *runPtr = true;
-    }
     builder_.AddListeningPort(server_address, InsecureServerCredentials());
     builder.RegisterService(&service_);
 
@@ -71,7 +68,6 @@ class AsyncServer {
   std::string serverAddress_;
   size_t numIoThreads;
   Service service_;
-  folly::Synchronized<bool> shouldRun_;
 
   grpc::ServerBuilder builder_;
   folly::CPUThreadPoolExecutor ioThreadPool_;

@@ -10,7 +10,6 @@ class HandlerManager {
  public:
   virtual void addHandler(Service* service,
                           grpc::ServerCompletionQueue* completionQueue) = 0;
-  virtual void process(void* tag) = 0;
-  virtual void removeHandler(void* tag) = 0;
+  virtual void process(void* tag, bool ok) = 0;
 };
 }  // namespace server_utils

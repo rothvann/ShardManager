@@ -105,7 +105,7 @@ filegroup(
 genrule(
   name = 'build-protobuf',
   srcs = ['//external_deps:protobuf-files'],
-  cmd = '(cd $SRCS/protobuf && cmake . -Dprotobuf_ABSL_PROVIDER=package -DCMAKE_PREFIX_PATH=../../$(location //external_deps:build-abseil)/lib/cmake/ -Dprotobuf_BUILD_TESTS=OFF -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native" && make && make install) && cp -r $SRCS/protobuf/out/. $OUT',
+  cmd = '(cd $SRCS/protobuf && cmake . -Dprotobuf_ABSL_PROVIDER=package -DCMAKE_PREFIX_PATH=../../$(location //external_deps:build-abseil)/lib/cmake/ -Dprotobuf_BUILD_TESTS=OFF -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native -fPIC" && make && make install) && cp -r $SRCS/protobuf/out/. $OUT',
   out = '.',
 )
 

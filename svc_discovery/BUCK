@@ -2,6 +2,7 @@ cxx_library(
     name = 'svc_discovery',
     srcs = [
         'HandlerManager.cpp',
+        'RequestHandler.cpp',
         'ServiceConnections.cpp',
     ],
     exported_headers = [
@@ -10,6 +11,7 @@ cxx_library(
         'ServiceConnections.h',
     ],
     exported_deps = ['//external_deps:folly', '//server_utils:server_utils', '//proto:service_discovery_cpp'],
+    preferred_linkage = 'static',
     visibility = [
         'PUBLIC',
     ],
