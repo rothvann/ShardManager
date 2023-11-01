@@ -64,7 +64,7 @@ class MetricConstraint : public Constraint {
             const MetricsMap& metricMap, const std::vector<DomainId>& children,
             std::pair<Domain, DomainId> node) -> int32_t {
       auto childDomain = assignmentTree.getChildDomain(node.first);
-      int32_t val = metricMap.get(node.first, node.second).value_or(0);
+      int64_t val = metricMap.get(node.first, node.second).value_or(0);
 
       for (auto child : children) {
         bool isFutureChild = true;
@@ -102,18 +102,17 @@ class MetricConstraint : public Constraint {
   virtual void commitMoves() { expressionTree_->commitMoves(); }
 
  private:
-  void updateWeightIfPossible(std::pair<Domain, DomainId> node, int32_t val) {
+  void updateWeightIfPossible(std::pair<Domain, DomainId> node, int64_t val) {
     if (node.first == domain_) {
-      int64_t prevWeight = domainFaultMap_[node.second] ? faultWeight_ : 0;
+      int64_t prevWeight = folly::get_default(domainFaultMap_, node.second, 0);
 
       if (val <= capacity_) {
         domainFaultMap_[node.second] = 0;
-        return;
+      } else {
+        domainFaultMap_[node.second] = (val - capacity_) * faultWeight_;
       }
 
-      domainFaultMap_[node.second] = true;
-
-      auto currentWeight = faultWeight_;
+      auto currentWeight = (val - capacity_) * faultWeight_;
       auto weightDelta = currentWeight - prevWeight;
       if (weightDelta == 0) {
         return;
@@ -133,7 +132,7 @@ class MetricConstraint : public Constraint {
   int32_t faultWeight_;
 
   std::shared_ptr<ExpressionTree> expressionTree_;
-  std::unordered_map<DomainId, bool> domainFaultMap_;
+  std::unordered_map<DomainId, int64_t> domainFaultMap_;
 };
 
 class LoadBalancingConstraint : public Constraint {
@@ -214,14 +213,20 @@ class LoadBalancingConstraint : public Constraint {
   void updateWeights() {
     auto meanMetric = static_cast<double>(metricSum_) / domainSize_;
     for (auto domainId : domainUpdatedSet_) {
+      int64_t prevWeight = folly::get_default(domainFaultMap_, domainId, 0);
       auto currentMetric = folly::get_default(domainMetricMap_, domainId, 0);
       auto delta = std::abs(currentMetric - meanMetric);
+      int64_t newWeight = 0;
       if (delta > maxDelta_) {
-        if (domain_ == state_->getBinDomain()) {
-          addBinWeight(domainId, delta * faultWeightMultiplier_);
-        } else {
-          addTotalWeight(delta * faultWeightMultiplier_);
-        }
+        newWeight = delta * faultWeightMultiplier_;
+      }
+
+      int64_t weightDelta = newWeight - prevWeight;
+    
+      if (domain_ == state_->getBinDomain()) {
+        addBinWeight(domainId, weightDelta);
+      } else {
+        addTotalWeight(weightDelta);
       }
     }
     domainUpdatedSet_.clear();
@@ -238,6 +243,7 @@ class LoadBalancingConstraint : public Constraint {
 
   std::unordered_map<DomainId, int32_t> domainMetricMap_;
   std::unordered_set<DomainId> domainUpdatedSet_;
+  std::unordered_map<DomainId, int64_t> domainFaultMap_;
 };
 
 }  // namespace psychopomp

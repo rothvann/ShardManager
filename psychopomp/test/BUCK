@@ -1,7 +1,7 @@
 cxx_binary(
   name = 'test',
   srcs = ['TestTree.cpp'],
-  deps = ['//external_deps:gtest'],
+  deps = ['//psychopomp/placer:placer', '//external_deps:gtest'],
   linker_flags = [
     '-lpthread',
   ],

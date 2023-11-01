@@ -1,13 +1,14 @@
 #include "gtest/gtest.h"
 #include "psychopomp/placer/IterativeLocalSearch.h"
 #include "psychopomp/placer/utils/Committable.h"
+#include <fmt/core.h>
 
 namespace psychopomp {
 
 TEST(TestTree, First) {
   std::shared_ptr<State> state = std::make_shared<State>(1, 2);
-  size_t numShards = 600000;
-  size_t numBins = 5000;
+  size_t numShards = 5000;
+  size_t numBins = 100;
   std::vector<DomainId> shards;
   std::vector<std::vector<DomainId>> binShardMap(numBins + 1,
                                                  std::vector<DomainId>());
@@ -22,24 +23,39 @@ TEST(TestTree, First) {
 
   std::vector<int32_t> metric;
   for (size_t i = 0; i < numShards; i++) {
-    metric.emplace_back(5);
+    metric.emplace_back(1);
   }
 
   state->addMetric(0, metric);
   std::vector<std::shared_ptr<Constraint>> constraints;
   std::shared_ptr<MetricConstraint> freeConstraint =
       std::make_shared<MetricConstraint>(state, 2, std::vector<DomainId>{0}, 0,
-                                         0, 1);
+                                         0, 10);
 
-  std::vector<DomainId> capacity;
+  std::vector<DomainId> domainIds;
   for (size_t i = 1; i <= numBins; i++) {
-    capacity.emplace_back(i);
+    domainIds.emplace_back(i);
   }
   std::shared_ptr<MetricConstraint> capacityConstraint =
-      std::make_shared<MetricConstraint>(state, 2, capacity, 0, 1000, 1);
+      std::make_shared<MetricConstraint>(state, 2, domainIds, 0, 1000, 10);
+  std::shared_ptr<LoadBalancingConstraint>  loadBalancingConstraint =
+      std::make_shared<LoadBalancingConstraint>(state, 2, domainIds, 0, 3, 5);
 
   IterativeLocalSearch search(500000);
-  auto movementMap = search.solve(state, {freeConstraint, capacityConstraint});
+  auto movementMap = search.solve(state, {freeConstraint, capacityConstraint, loadBalancingConstraint});
+
+
+  std::unordered_map<DomainId, std::vector<DomainId>> binToShards;
+  for(auto& [shard, nextBin] : movementMap->getAllMovements()) {
+    binToShards[nextBin].push_back(shard); 
+  }
+
+  int sum = 0;
+  for(auto& [bin, shards] : binToShards) {
+    std::cout << fmt::format("Bin: {}, Shards: {}", bin, shards.size()) << std::endl;
+    sum += shards.size();
+  }
+  std::cout << sum << std::endl;
 }
 }  // namespace psychopomp
 

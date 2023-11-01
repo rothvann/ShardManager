@@ -86,24 +86,30 @@ class IterativeLocalSearch {
     // go through all shards
     auto& shards =
         state->getAssignmentTree()->getChild(state->getBinDomain(), binId);
+    
+    std::vector<DomainId> shardsInBin;
+    for(auto shard : shards) {
+      // Check if shard still exists in bin
+      auto nextBin = committedMoves->getNextBin(shard);
+      if (nextBin.has_value()) {
+        continue;
+      }
+      shardsInBin.push_back(shard);
+    }
 
-    if (shards.size() == 0) {
+    if (shardsInBin.size() == 0) {
       return std::nullopt;
     }
 
-    for (size_t iter = 0; iter < 5; iter++) {
-      auto shard = shards[randomGen_() % (shards.size())];
-      // Check if shard still exists in bin
-      auto nextBin = committedMoves->getNextBin(shard);
-      if (nextBin.has_value() && nextBin.value() != binId) {
-        continue;
-      }
+    for (size_t iter = 0; iter < 10; iter++) {
+      auto shard = shardsInBin[randomGen_() % (shardsInBin.size())];
 
       // find next bin
-      for (size_t binsChecked = 0; binsChecked < 2; binsChecked++) {
-        DomainId nextBinId = randomGen_() % (numBins - 1);
+      std::uniform_int_distribution<int>  distr(0, numBins - 1);
+      for (size_t binsChecked = 0; binsChecked < 10; binsChecked++) {
+        DomainId nextBinId = distr(randomGen_);
         if (nextBinId == binId) {
-          nextBinId++;
+          continue;
         }
 
         // Check if weight is lower
