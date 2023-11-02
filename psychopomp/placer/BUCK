@@ -1,18 +1,67 @@
 cxx_library(
-  name = 'placer',
+  name = 'states',
   srcs = [
+    'AssignmentTree.cpp',
     'ExpressionTree.cpp',
+    'MovementMap.cpp',
     'State.cpp',
   ],
   exported_headers = [
     'AssignmentTree.h',
-    'Constraint.h',
     'ExpressionTree.h',
-    'IterativeLocalSearch.h',
     'MovementMap.h',
     'State.h',
   ],
-  exported_deps = ['//external_deps:folly', '//external_deps:unordered-dense', '//psychopomp:psychopomp_common', '//psychopomp/placer/utils:utils', '//proto:service_discovery_cpp'],
+  exported_deps = [
+    '//psychopomp:psychopomp_common',
+    '//psychopomp/placer/utils:utils', 
+    '//external_deps:unordered-dense', 
+    '//external_deps:folly', 
+  ],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+cxx_library(
+  name = 'constraints',
+  srcs = [
+  ],
+  exported_headers = [
+    'Constraint.h',
+    'ConstraintUtils.h',
+  ],
+  exported_deps = [
+    '//psychopomp/placer:states',
+    '//external_deps:folly', 
+    '//external_deps:unordered-dense', 
+    '//psychopomp:psychopomp_common', 
+    '//psychopomp/placer/utils:utils', 
+    '//proto:service_discovery_cpp'
+  ],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+cxx_library(
+  name = 'placer',
+  srcs = [
+  ],
+  exported_headers = [
+    'IterativeLocalSearch.h',
+  ],
+  exported_deps = [
+    '//psychopomp/placer:states',
+    '//psychopomp/placer:constraints',
+    '//external_deps:folly', 
+    '//external_deps:unordered-dense', 
+    '//psychopomp:psychopomp_common', 
+    '//psychopomp/placer/utils:utils', 
+    '//proto:service_discovery_cpp'
+  ],
   preferred_linkage = 'static',
   visibility = [
     'PUBLIC',

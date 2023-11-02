@@ -35,17 +35,15 @@ void ExpressionTree::canaryMoves(std::shared_ptr<MovementMap> committedMoves,
                      std::unordered_map<DomainId, std::vector<DomainId>>>
       toUpdate;
   for (auto [shardId, binId] : allMovements) {
-    if (assignmentTree_->doesNodeExist(state_->getShardDomain(), shardId) ||
-        assignmentTree_->doesNodeExist(state_->getBinDomain(), binId)) {
-      auto parents = assignmentTree_->getParents(
-          state_->getShardDomain(), shardId, {state_->getMovementMap()});
-      for (auto [domain, domainId] : parents) {
-        toUpdate[domain][domainId].emplace_back(shardId);
-      }
+    auto parents = assignmentTree_->getParents(
+        state_->getShardDomain(), shardId,
+        {state_->getMovementMap(), committedMoves, canaryMoves});
+    for (auto [parentDomain, parentDomainId] : parents) {
+      toUpdate[parentDomain][parentDomainId].emplace_back(shardId);
     }
   }
-  propagateChanges(
-      toUpdate, {state_->getMovementMap(), committedMoves, canaryMoves}, true);
+  propagateChanges(toUpdate,
+                   {state_->getMovementMap(), committedMoves, canaryMoves});
 }
 
 void ExpressionTree::commitMoves() { metricsMap_.commit(); }
@@ -56,7 +54,7 @@ void ExpressionTree::initializeAssignmentTree(
     Domain domain, const std::vector<DomainId>& treeParents) {
   std::deque<std::pair<Domain, DomainId>> nodesToAdd;
   for (auto parentId : treeParents) {
-    nodesToAdd.emplace_back(state_->getBinDomain(), parentId);
+    nodesToAdd.emplace_back(domain, parentId);
   }
 
   auto addChild = [&](Domain childDomain,
@@ -68,12 +66,10 @@ void ExpressionTree::initializeAssignmentTree(
 
   while (!nodesToAdd.empty()) {
     auto& parent = nodesToAdd.front();
-
-    auto child = state_->getAssignmentTree()->getChild(
+    auto child = state_->getAssignmentTree()->getChildren(
         parent.first, parent.second, {state_->getMovementMap()});
     assignmentTree_->addMapping(parent, child);
     addChild(child.first, child.second);
-
     nodesToAdd.pop_front();
   }
 }
@@ -95,26 +91,25 @@ void ExpressionTree::initializeMetricState() {
     }
   }
 
-  propagateChanges(toUpdate, {state_->getMovementMap()}, false);
+  propagateChanges(toUpdate, {state_->getMovementMap()});
 }
 
 void ExpressionTree::propagateChanges(
     const std::unordered_map<
         Domain, std::unordered_map<DomainId, std::vector<DomainId>>>& toUpdate,
-    const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
-    bool isCanary) {
+    const std::vector<std::shared_ptr<MovementMap>>& movementMaps) {
   std::unordered_map<Domain,
                      std::unordered_map<DomainId, std::vector<DomainId>>>
       nextToUpdate;
 
   for (auto& [domain, domainIdChildrenMap] : toUpdate) {
-    for (auto& [domainId, children] : domainIdChildrenMap) {
+    for (auto& [domainId, changedChildren] : domainIdChildrenMap) {
       auto prevVal = metricsMap_.get(domain, domainId);
       int32_t curVal =
-          calcMetricFunc_(*assignmentTree_, movementMaps, metricsMap_, children,
+          calcMetricFunc_(*assignmentTree_, movementMaps, metricsMap_, changedChildren,
                           {domain, domainId});
       if (!prevVal.has_value() || prevVal.value() != curVal) {
-        metricsMap_.set(isCanary, curVal, domain, domainId);
+        metricsMap_.set(true /* isCanary */, curVal, domain, domainId);
 
         auto parents =
             assignmentTree_->getParents(domain, domainId, movementMaps);
@@ -125,7 +120,7 @@ void ExpressionTree::propagateChanges(
     }
   }
   if (!nextToUpdate.empty()) {
-    propagateChanges(nextToUpdate, movementMaps, isCanary);
+    propagateChanges(nextToUpdate, movementMaps);
   }
 }
 

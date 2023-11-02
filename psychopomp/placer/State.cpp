@@ -6,17 +6,29 @@
 
 namespace psychopomp {
 
-State::State(const Domain& shardDomain, const Domain& binDomain)
-    : shardDomain_(shardDomain),
-      binDomain_(binDomain),
-      assignmentTree_(std::make_shared<AssignmentTree>(shardDomain, binDomain)),
-      movementMap_(std::make_shared<MovementMap>()) {}
+State::State(const size_t numShards,
+             const std::vector<std::vector<DomainId>>& parentChildMap)
+    : domainCounter_(0), movementMap_(std::make_shared<MovementMap>()) {
+  setShards(numShards);
+  binDomain_ = getNewDomain();
+  assignmentTree_ = std::make_shared<AssignmentTree>(shardDomain_, binDomain_);
+  addDomainInternal(binDomain_, shardDomain_, parentChildMap);
+}
 
 void State::setShards(const size_t numShards) {
+  shardDomain_ = getNewDomain();
   domainElements_.emplace(shardDomain_, numShards);
 }
 
-void State::addDomain(
+Domain State::addDomain(
+    const Domain& childDomain,
+    const std::vector<std::vector<DomainId>>& parentChildMap) {
+  Domain parentDomain = getNewDomain();
+  addDomainInternal(parentDomain, childDomain, parentChildMap);
+  return parentDomain;
+}
+
+void State::addDomainInternal(
     const Domain& parentDomain, const Domain& childDomain,
     const std::vector<std::vector<DomainId>>& parentChildMap) {
   domainElements_.emplace(parentDomain, parentChildMap.size());
@@ -67,4 +79,5 @@ int32_t State::getShardMetric(Metric metric, DomainId domainId) const {
 
 BinWeightInfo& State::getBinWeightInfo() { return binWeightInfo_; }
 
+Domain State::getNewDomain() { return domainCounter_++; }
 }  // namespace psychopomp

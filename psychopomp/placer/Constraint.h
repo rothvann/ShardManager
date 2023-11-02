@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "psychopomp/Types.h"
+#include "psychopomp/placer/ConstraintUtils.h"
 #include "psychopomp/placer/ExpressionTree.h"
 #include "psychopomp/placer/State.h"
 
@@ -11,7 +12,8 @@ namespace psychopomp {
 
 class Constraint {
  public:
-  Constraint(std::shared_ptr<State> state) : state_(state) {}
+  Constraint(std::shared_ptr<State> state, std::string name = "")
+      : state_(state), name_(name) {}
   virtual void canaryMoves(std::shared_ptr<MovementMap> comittiedMoves,
                            std::shared_ptr<MovementMap> canaryMoves) = 0;
 
@@ -26,12 +28,9 @@ class Constraint {
  protected:
   virtual void commitMoves() = 0;
 
-  void resetBinWeights() {}
-
   void addBinWeight(DomainId domainId, int64_t binWeightDelta) {
     auto& binWeightInfo = state_->getBinWeightInfo();
-    auto prevWeight =
-        binWeightInfo.binWeightMap.getFromCommittedMap(domainId).value_or(0);
+    auto prevWeight = binWeightInfo.binWeightMap.get(domainId).value_or(0);
     binWeightInfo.binWeightMap.set(true /* isCanary */,
                                    prevWeight + binWeightDelta, domainId);
     addTotalWeight(binWeightDelta);
@@ -39,13 +38,13 @@ class Constraint {
 
   void addTotalWeight(int64_t weightDelta) {
     auto& binWeightInfo = state_->getBinWeightInfo();
-    auto prevTotalWeight =
-        binWeightInfo.totalWeight.getCommittedVal().value_or(0);
+    auto prevTotalWeight = binWeightInfo.totalWeight.get().value_or(0);
     binWeightInfo.totalWeight.set(true /* isCanary */,
                                   prevTotalWeight + weightDelta);
   }
 
   std::shared_ptr<State> state_;
+  std::string name_;
 };
 
 class MetricConstraint : public Constraint {
@@ -61,12 +60,13 @@ class MetricConstraint : public Constraint {
     auto func =
         [&](const AssignmentTree& assignmentTree,
             const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
-            const MetricsMap& metricMap, const std::vector<DomainId>& children,
+            const MetricsMap& metricMap,
+            const std::vector<DomainId>& changedChildren,
             std::pair<Domain, DomainId> node) -> int32_t {
       auto childDomain = assignmentTree.getChildDomain(node.first);
       int64_t val = metricMap.get(node.first, node.second).value_or(0);
 
-      for (auto child : children) {
+      for (auto child : changedChildren) {
         bool isFutureChild = true;
         if (node.first == state_->getBinDomain()) {
           for (auto movementMap : movementMaps) {
@@ -78,11 +78,18 @@ class MetricConstraint : public Constraint {
           }
         }
 
-        auto metric = metricMap.get(childDomain, child);
-        if (isFutureChild) {
-          val += metric.value_or(0);
+        int32_t metric = 0;
+        if (childDomain == state_->getShardDomain()) {
+          metric = state_->getShardMetric(metric_, child);
         } else {
-          val -= metric.value_or(0);
+          metric =
+              metricMap.get(childDomain, child).value_or(0) -
+              metricMap.getFromCommittedMap(childDomain, child).value_or(0);
+        }
+        if (isFutureChild) {
+          val += metric;
+        } else {
+          val -= metric;
         }
       }
 
@@ -94,25 +101,30 @@ class MetricConstraint : public Constraint {
     commit();
   }
 
-  virtual void canaryMoves(std::shared_ptr<MovementMap> committedMoves,
-                           std::shared_ptr<MovementMap> canaryMoves) {
+  void canaryMoves(std::shared_ptr<MovementMap> committedMoves,
+                   std::shared_ptr<MovementMap> canaryMoves) override {
+    domainFaultMap_.clear();
     expressionTree_->canaryMoves(committedMoves, canaryMoves);
+    auto& binWeightInfo = state_->getBinWeightInfo();
   }
 
-  virtual void commitMoves() { expressionTree_->commitMoves(); }
+  void commitMoves() override {
+    expressionTree_->commitMoves();
+    domainFaultMap_.commit();
+  }
 
  private:
   void updateWeightIfPossible(std::pair<Domain, DomainId> node, int64_t val) {
     if (node.first == domain_) {
-      int64_t prevWeight = folly::get_default(domainFaultMap_, node.second, 0);
+      int64_t prevWeight = domainFaultMap_.get(node.second).value_or(0);
 
-      if (val <= capacity_) {
-        domainFaultMap_[node.second] = 0;
-      } else {
-        domainFaultMap_[node.second] = (val - capacity_) * faultWeight_;
+      auto currentWeight = 0;
+      if (val > capacity_) {
+        currentWeight = (val - capacity_) * faultWeight_;
       }
 
-      auto currentWeight = (val - capacity_) * faultWeight_;
+      domainFaultMap_.set(true /* isCanary */, currentWeight, node.second);
+
       auto weightDelta = currentWeight - prevWeight;
       if (weightDelta == 0) {
         return;
@@ -132,7 +144,8 @@ class MetricConstraint : public Constraint {
   int32_t faultWeight_;
 
   std::shared_ptr<ExpressionTree> expressionTree_;
-  std::unordered_map<DomainId, int64_t> domainFaultMap_;
+  CommittableMap<std::unordered_map<DomainId, int64_t>, int64_t>
+      domainFaultMap_;
 };
 
 class LoadBalancingConstraint : public Constraint {
@@ -145,105 +158,137 @@ class LoadBalancingConstraint : public Constraint {
         metric_(metric),
         maxDelta_(maxDelta),
         faultWeightMultiplier_(faultWeightMultiplier),
-        domainSize_(domainIds.size()),
-        metricSum_(0) {
-    auto func =
+        domainSize_(domainIds.size()) {
+    std::vector<std::vector<DomainId>> loadBalancingDomainIdMap = {domainIds};
+    loadBalancingDomain_ = state->addDomain(domain_, loadBalancingDomainIdMap);
+    auto minFunc =
         [&](const AssignmentTree& assignmentTree,
             const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
-            const MetricsMap& metricMap, const std::vector<DomainId>& children,
+            const MetricsMap& metricMap,
+            const std::vector<DomainId>& changedChildren,
             std::pair<Domain, DomainId> node) -> int32_t {
-      auto childDomain = assignmentTree.getChildDomain(node.first);
-      int32_t val = metricMap.get(node.first, node.second).value_or(0);
-
-      for (auto child : children) {
-        bool isFutureChild = true;
-        if (node.first == state_->getBinDomain()) {
-          for (auto movementMap : movementMaps) {
-            auto nextBin = movementMap->getNextBin(child);
-            if (nextBin.has_value() && nextBin.value() != node.second) {
-              isFutureChild = false;
-              break;
-            }
-          }
-        }
-
-        auto metric = metricMap.get(childDomain, child);
-        if (isFutureChild) {
-          val += metric.value_or(0);
-        } else {
-          val -= metric.value_or(0);
-        }
-      }
-
-      if (node.first == domain_) {
-        auto* prev = folly::get_ptr(domainMetricMap_, node.second);
-        if (prev) {
-          if (*prev != val) {
-            *prev = val;
-            domainUpdatedSet_.insert(node.second);
-
-            metricSum_ -= *prev;
-            metricSum_ += val;
-          }
-        } else {
-          domainMetricMap_[node.second] = val;
-          domainUpdatedSet_.insert(node.second);
-          metricSum_ += val;
-        }
-      }
-
-      return val;
+      return calculate(assignmentTree, movementMaps, metricMap, changedChildren,
+                       node, [](int32_t a, int32_t b) -> bool {
+                         return std::less<int32_t>()(a, b);
+                       });
     };
-    expressionTree_ = std::make_shared<ExpressionTree>(state_, metric_, domain_,
-                                                       domainIds, func);
-
+    auto maxFunc =
+        [&](const AssignmentTree& assignmentTree,
+            const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
+            const MetricsMap& metricMap,
+            const std::vector<DomainId>& changedChildren,
+            std::pair<Domain, DomainId> node) -> int32_t {
+      return calculate(assignmentTree, movementMaps, metricMap, changedChildren,
+                       node, [](int32_t a, int32_t b) -> bool {
+                         return std::greater<int32_t>()(a, b);
+                       });
+    };
+    minExpressionTree_ =
+        std::make_shared<ExpressionTree>(state_, metric_, loadBalancingDomain_,
+                                         std::vector<DomainId>{0}, minFunc);
+    maxExpressionTree_ =
+        std::make_shared<ExpressionTree>(state_, metric_, loadBalancingDomain_,
+                                         std::vector<DomainId>{0}, maxFunc);
     updateWeights();
     commit();
   }
 
-  virtual void canaryMoves(std::shared_ptr<MovementMap> committedMoves,
-                           std::shared_ptr<MovementMap> canaryMoves) {
-    expressionTree_->canaryMoves(committedMoves, canaryMoves);
+  void canaryMoves(std::shared_ptr<MovementMap> committedMoves,
+                   std::shared_ptr<MovementMap> canaryMoves) override {
+    domainUpdatedSet_.clear();
+    domainFaultMap_.clear();
+    minExpressionTree_->canaryMoves(committedMoves, canaryMoves);
+    maxExpressionTree_->canaryMoves(committedMoves, canaryMoves);
     updateWeights();
   }
 
-  virtual void commitMoves() { expressionTree_->commitMoves(); }
+  void commitMoves() override {
+    minExpressionTree_->commitMoves();
+    maxExpressionTree_->commitMoves();
+    domainFaultMap_.commit();
+  }
 
  private:
+  int32_t calculate(
+      const AssignmentTree& assignmentTree,
+      const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
+      const MetricsMap& metricMap, const std::vector<DomainId>& changedChildren,
+      std::pair<Domain, DomainId> node,
+      std::function<bool(int32_t, int32_t)> cmp) {
+    auto domain = node.first;
+    auto domainId = node.second;
+
+    // Calculate tree node min / max
+    auto children =
+        assignmentTree.getChildren(node.first, node.second, movementMaps);
+    auto childDomain = children.first;
+    auto& childVector = children.second;
+
+    if (domain == domain_) {
+      domainUpdatedSet_.insert(domainId);
+    }
+    
+
+    if (domain == state_->getBinDomain()) {
+      int32_t sum = 0;
+      for (auto child : childVector) {
+        bool isFutureChild =
+            checkIsFutureChild(movementMaps, child, domain, domainId);
+        if (isFutureChild) {
+          auto metric = state_->getShardMetric(metric_, child);
+          sum += metric;
+        }
+      }
+      return sum;
+    } else {
+      std::vector<int32_t> metrics;
+      for (auto child : childVector) {
+        auto metric = metricMap.get(childDomain, child);
+        if(metric) {
+          metrics.emplace_back(*metric);
+        }
+      }
+      if (metrics.empty()) {
+        return 0;
+      }
+      // Does not return min but applies our compare function
+      return *std::min_element(metrics.begin(), metrics.end(), cmp);
+    }
+  };
+
   void updateWeights() {
-    auto meanMetric = static_cast<double>(metricSum_) / domainSize_;
+    auto minMetric = minExpressionTree_->getMetricsMap()
+                         .get(loadBalancingDomain_, 0)
+                         .value_or(0);
     for (auto domainId : domainUpdatedSet_) {
-      int64_t prevWeight = folly::get_default(domainFaultMap_, domainId, 0);
-      auto currentMetric = folly::get_default(domainMetricMap_, domainId, 0);
-      auto delta = std::abs(currentMetric - meanMetric);
+      int64_t prevWeight = domainFaultMap_.get(domainId).value_or(0);
+      auto maxMetric = maxExpressionTree_->getMetricsMap()
+                           .get(domain_, domainId)
+                           .value_or(0);
+      auto delta = std::abs(maxMetric - minMetric);
       int64_t newWeight = 0;
-      if (delta > maxDelta_) {
-        newWeight = delta * faultWeightMultiplier_;
+      if (delta >= maxDelta_) {
+        newWeight = (delta - maxDelta_) * faultWeightMultiplier_;
       }
 
       int64_t weightDelta = newWeight - prevWeight;
-    
-      if (domain_ == state_->getBinDomain()) {
-        addBinWeight(domainId, weightDelta);
-      } else {
-        addTotalWeight(weightDelta);
-      }
+      addBinWeight(domainId, weightDelta);
     }
-    domainUpdatedSet_.clear();
   }
 
   Domain domain_;
+  Domain loadBalancingDomain_;
   Metric metric_;
   int32_t maxDelta_;
   double faultWeightMultiplier_;
   int32_t domainSize_;
-  int64_t metricSum_;
 
-  std::shared_ptr<ExpressionTree> expressionTree_;
+  std::shared_ptr<ExpressionTree> minExpressionTree_;
+  std::shared_ptr<ExpressionTree> maxExpressionTree_;
 
-  std::unordered_map<DomainId, int32_t> domainMetricMap_;
   std::unordered_set<DomainId> domainUpdatedSet_;
-  std::unordered_map<DomainId, int64_t> domainFaultMap_;
+  CommittableMap<std::unordered_map<DomainId, int64_t>, int64_t>
+      domainFaultMap_;
 };
 
 }  // namespace psychopomp

@@ -53,8 +53,7 @@ class ExpressionTree {
       const std::unordered_map<
           Domain, std::unordered_map<DomainId, std::vector<DomainId>>>&
           toUpdate,
-      const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
-      bool isCanary);
+      const std::vector<std::shared_ptr<MovementMap>>& movementMaps);
 
   std::shared_ptr<State> state_;
   Metric metric_;

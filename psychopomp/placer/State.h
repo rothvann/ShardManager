@@ -22,11 +22,9 @@ struct BinWeightInfo {
 
 class State {
  public:
-  State(const Domain& shardDomain, const Domain& binDomain);
+  State(const size_t numShards, const std::vector<std::vector<DomainId>>& parentChildMap);
 
-  void setShards(const size_t numShards);
-
-  void addDomain(const Domain& parentDomain, const Domain& childDomain,
+  Domain addDomain(const Domain& childDomain,
                  const std::vector<std::vector<DomainId>>& parentChildMap);
 
   std::shared_ptr<AssignmentTree> getAssignmentTree() const;
@@ -47,8 +45,14 @@ class State {
   BinWeightInfo& getBinWeightInfo();
 
  private:
+  void addDomainInternal(const Domain& parentDomain, const Domain& childDomain,
+                 const std::vector<std::vector<DomainId>>& parentChildMap);
+  Domain getNewDomain();
+
+  void setShards(const size_t numShards);
   Domain shardDomain_;
   Domain binDomain_;
+  size_t domainCounter_;
 
   std::unordered_map<Metric, std::vector<int32_t>> metricVectorMap_;
   BinWeightInfo binWeightInfo_;

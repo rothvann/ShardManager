@@ -11,45 +11,19 @@ namespace psychopomp {
 
 class MovementMap {
  public:
-  void addMovement(DomainId shardId, DomainId binId) {
-    binToIncomingShardMap_[binId].emplace(shardId);
-    shardToNextBinMap_[shardId] = (binId);
-  }
+  void addMovement(DomainId shardId, DomainId binId);
 
-  void removeMovement(DomainId shardId) {
-    const auto nextBin = getNextBin(shardId);
-    if (nextBin) {
-      binToIncomingShardMap_[nextBin.value()].erase(shardId);
-      shardToNextBinMap_.erase(shardId);
-    }
-  }
+  void removeMovement(DomainId shardId);
 
-  void clearMovements() {
-    binToIncomingShardMap_.clear();
-    shardToNextBinMap_.clear();
-  }
+  void clearMovements();
 
-  const std::unordered_set<DomainId>& getIncomingShards(DomainId binId) {
-    return binToIncomingShardMap_[binId];
-  }
+  const std::unordered_set<DomainId>& getIncomingShards(DomainId binId);
 
-  std::optional<DomainId> getNextBin(DomainId shardId) {
-    if (auto parentBin = shardToNextBinMap_.find(shardId);
-        parentBin != shardToNextBinMap_.end()) {
-      return parentBin->second;
-    }
-    return std::nullopt;
-  }
+  std::optional<DomainId> getNextBin(DomainId shardId);
 
-  const std::unordered_map<DomainId, DomainId>& getAllMovements() {
-    return shardToNextBinMap_;
-  }
+  const std::unordered_map<DomainId, DomainId>& getAllMovements();
 
-  void addMovements(std::shared_ptr<MovementMap> newMovements) {
-    for (auto [shardId, binId] : newMovements->getAllMovements()) {
-      addMovement(shardId, binId);
-    }
-  }
+  void addMovements(std::shared_ptr<MovementMap> newMovements);
 
  private:
   std::unordered_map<DomainId, std::unordered_set<DomainId>>

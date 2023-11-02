@@ -10,15 +10,6 @@
 #include "psychopomp/placer/utils/Committable.h"
 #include "psychopomp/placer/utils/RandomGenerator.h"
 
-// Client
-// cpu 50
-// cpu capacity 200
-
-// 0 - 1, 2, 3, 4
-//
-//
-//
-
 namespace psychopomp {
 
 class IterativeLocalSearch {
@@ -85,7 +76,7 @@ class IterativeLocalSearch {
     size_t numBins = state->getDomainSize(state->getBinDomain());
     // go through all shards
     auto& shards =
-        state->getAssignmentTree()->getChild(state->getBinDomain(), binId);
+        state->getAssignmentTree()->getChildren(state->getBinDomain(), binId);
     
     std::vector<DomainId> shardsInBin;
     for(auto shard : shards) {
@@ -106,19 +97,26 @@ class IterativeLocalSearch {
 
       // find next bin
       std::uniform_int_distribution<int>  distr(0, numBins - 1);
-      for (size_t binsChecked = 0; binsChecked < 10; binsChecked++) {
+      std::unordered_set<DomainId> binSet;
+      while(binSet.size() < numBins - 1 && binSet.size() < 50) {
         DomainId nextBinId = distr(randomGen_);
         if (nextBinId == binId) {
           continue;
         }
-
+        binSet.insert(nextBinId);
+      }
+      for (auto nextBinId : binSet) {
         // Check if weight is lower
         canariedMoves->clearMovements();
+        auto& binWeightInfo = state->getBinWeightInfo();
+        binWeightInfo.binWeightMap.clear();
+        binWeightInfo.totalWeight.clear();
+
         canariedMoves->addMovement(shard, nextBinId);
         updateWeights(constraints, committedMoves, canariedMoves);
 
         auto newWeight =
-            state->getBinWeightInfo().totalWeight.get().value_or(0);
+            binWeightInfo.totalWeight.get().value_or(0);
         if (newWeight < currentWeight) {
           currentWeight = newWeight;
           return canariedMoves;
