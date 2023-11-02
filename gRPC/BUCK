@@ -1,1 +1,53 @@
-test
+cxx_binary(
+  name = 'greeter_server',
+  srcs = ['helloworld/greeter_server.cc'],
+  deps = ['//gRPC:hello_world_cpp', '//external_deps:abseil', '//external_deps:grpc'],
+)
+
+genrule(
+    name = 'protos',
+    srcs = ['helloworld.proto'],
+    cmd = 'mkdir $OUT && $(exe //external_deps:protoc) --plugin=protoc-gen-cpp-grpc=$(location //external_deps:bin-grpc)/grpc_cpp_plugin --cpp-grpc_out=$OUT --cpp_out=$OUT *.proto',
+    out = 'proto'
+)
+  
+genrule(
+    name = 'hello_world_cc',
+    srcs = ['//gRPC:protos'],
+    cmd = 'cp $SRCS/helloworld.pb.cc $OUT',
+    out = 'helloworld.pb.cc',
+)
+
+genrule(
+    name = 'hello_world_grpc_cc',
+    srcs = ['//gRPC:protos'],
+    cmd = 'cp $SRCS/helloworld.grpc.pb.cc $OUT',
+    out = 'helloworld.grpc.pb.cc',
+)
+
+genrule(
+    name = 'hello_world_h',
+    srcs = ['//gRPC:protos'],
+    cmd = 'cp $SRCS/helloworld.pb.h $OUT',
+    out = 'helloworld.pb.h',
+)
+
+genrule(
+    name = 'hello_world_grpc_h',
+    srcs = ['//gRPC:protos'],
+    cmd = 'cp $SRCS/helloworld.grpc.pb.h $OUT',
+    out = 'helloworld.grpc.pb.h',
+)
+
+cxx_library(
+    name = 'hello_world_cpp',
+    srcs = ['//gRPC:hello_world_cc', '//gRPC:hello_world_grpc_cc'],
+    header_namespace = '',
+    exported_headers = ['//gRPC:hello_world_h', '//gRPC:hello_world_grpc_h'],
+    deps = [],
+    exported_deps = ['//external_deps:protobuf', '//external_deps:grpc'],
+    preferred_linkage = 'static',
+    visibility = [
+    'PUBLIC',
+    ],
+)

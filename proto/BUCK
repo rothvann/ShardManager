@@ -38,7 +38,7 @@ cxx_library(
   srcs = ['//proto:service_discovery_cc', '//proto:service_discovery_grpc_cc'],
   header_namespace = '',
   exported_headers = ['//proto:service_discovery_h', '//proto:service_discovery_grpc_h'],
-  deps = ['//external_deps:protobuf', '//external_deps:grpc'],
+  deps = [],
   exported_deps = ['//external_deps:protobuf', '//external_deps:grpc'],
   preferred_linkage = 'static',
   visibility = [

@@ -189,7 +189,7 @@ prebuilt_cxx_library(
   static_lib = '//external_deps:lib-protobuf-protobuf',
   header_namespace = '',
   exported_headers = ['//external_deps:headers-protobuf-google'],
-  exported_deps = ['//external_deps:protobuf-utf8_range', '//external_deps:protobuf-utf8_validity'],
+  exported_deps = ['//external_deps:protobuf-utf8_range', '//external_deps:protobuf-utf8_validity', '//external_deps:abseil'],
   preferred_linkage = 'static',
   visibility = [
     'PUBLIC',
@@ -324,10 +324,10 @@ genrule(
     
 
 genrule(
-  name = 'lib-grpc-grcpp_channelz',
+  name = 'lib-grpc-grpcpp_channelz',
   srcs = ['//external_deps:build-grpc'],
-  cmd = 'cp -r $SRCS/lib/libgrcpp_channelz.a $OUT',
-  out = 'libgrcpp_channelz.a',
+  cmd = 'cp -r $SRCS/lib/libgrpcpp_channelz.a $OUT',
+  out = 'libgrpcpp_channelz.a',
 )
     
 
@@ -597,8 +597,8 @@ prebuilt_cxx_library(
     
 
 prebuilt_cxx_library(
-  name = 'grpc-grcpp_channelz',
-  static_lib = '//external_deps:lib-grpc-grcpp_channelz',
+  name = 'grpc-grpcpp_channelz',
+  static_lib = '//external_deps:lib-grpc-grpcpp_channelz',
   preferred_linkage = 'static',
   visibility = [
     'PUBLIC',
@@ -686,8 +686,16 @@ prebuilt_cxx_library(
 )
 
 prebuilt_cxx_library(
-  name = 'grpc',
+  name = 'grpc-grpc',
   static_lib = '//external_deps:lib-grpc-grpc',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+prebuilt_cxx_library(
+  name = 'grpc',
   header_namespace = '',
   exported_headers = [
     '//external_deps:headers-grpc-grpc', 
@@ -704,29 +712,30 @@ prebuilt_cxx_library(
     '//external_deps:headers-grpc-zlib' ,
   ],
   exported_deps = [
-    '//external_deps:abseil-string_view',
-    '//external_deps:lib-grpc-address_sorting',
-    '//external_deps:lib-grpc-cares',
-    '//external_deps:lib-grpc-crypto',
-    '//external_deps:lib-grpc-gpr',
-    '//external_deps:lib-grpc-grpc_authorization_provider',
-    '//external_deps:lib-grpc-grpc_plugin_support',
-    '//external_deps:lib-grpc-grpc_unsecure',
-    '//external_deps:lib-grpc-grpc',
-    '//external_deps:lib-grpc-grpc++_alts',
-    '//external_deps:lib-grpc-grpc++_error_details',
-    '//external_deps:lib-grpc-grpc++_reflection',
-    '//external_deps:lib-grpc-grpc++_unsecure',
-    '//external_deps:lib-grpc-grpc++',
-    '//external_deps:lib-grpc-grcpp_channelz',
-    '//external_deps:lib-grpc-re2',
-    '//external_deps:lib-grpc-ssl',
-    '//external_deps:lib-grpc-upb_collections_lib',
-    '//external_deps:lib-grpc-upb_json_lib',
-    '//external_deps:lib-grpc-upb_textformat_lib',
-    '//external_deps:lib-grpc-upb',
-    '//external_deps:lib-grpc-utf8_range_lib',
-    '//external_deps:lib-grpc-z'
+    '//external_deps:abseil',
+    '//external_deps:grpc-grpc',
+    '//external_deps:grpc-address_sorting',
+    '//external_deps:grpc-cares',
+    '//external_deps:grpc-crypto',
+    '//external_deps:grpc-gpr',
+    '//external_deps:grpc-grpc_authorization_provider',
+    '//external_deps:grpc-grpc_plugin_support',
+    '//external_deps:grpc-grpc_unsecure',
+    '//external_deps:grpc-grpc',
+    '//external_deps:grpc-grpc++_alts',
+    '//external_deps:grpc-grpc++_error_details',
+    '//external_deps:grpc-grpc++_reflection',
+    '//external_deps:grpc-grpc++_unsecure',
+    '//external_deps:grpc-grpc++',
+    '//external_deps:grpc-grpcpp_channelz',
+    '//external_deps:grpc-re2',
+    '//external_deps:grpc-ssl',
+    '//external_deps:grpc-upb_collections_lib',
+    '//external_deps:grpc-upb_json_lib',
+    '//external_deps:grpc-upb_textformat_lib',
+    '//external_deps:grpc-upb',
+    '//external_deps:grpc-utf8_range_lib',
+    '//external_deps:grpc-z'
   ],
   preferred_linkage = 'static',
   visibility = [
@@ -876,6 +885,14 @@ genrule(
   srcs = ['//external_deps:build-abseil'],
   cmd = 'cp -r $SRCS/lib/libabsl_cordz_info.a $OUT',
   out = 'libabsl_cordz_info.a'
+)
+
+
+genrule(
+  name = 'lib-abseil-cordz_handle',
+  srcs = ['//external_deps:build-abseil'],
+  cmd = 'cp -r $SRCS/lib/libabsl_cordz_handle.a $OUT',
+  out = 'libabsl_cordz_handle.a'
 )
     
 
@@ -1606,6 +1623,17 @@ prebuilt_cxx_library(
   ],
 )
     
+
+prebuilt_cxx_library(
+  name = 'abseil-cordz_handle',
+  static_lib = '//external_deps:lib-abseil-cordz_handle',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-abseil'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
 
 prebuilt_cxx_library(
   name = 'abseil-cordz_sample_token',
@@ -2518,3 +2546,99 @@ prebuilt_cxx_library(
   ],
 )
   
+
+prebuilt_cxx_library(
+  name = 'abseil',
+  header_namespace = '',
+  exported_deps = [
+    '//external_deps:abseil-bad_any_cast_impl',
+    '//external_deps:abseil-bad_optional_access',
+    '//external_deps:abseil-bad_variant_access',
+    '//external_deps:abseil-base',
+    '//external_deps:abseil-city',
+    '//external_deps:abseil-civil_time',
+    '//external_deps:abseil-cord_internal',
+    '//external_deps:abseil-cord',
+    '//external_deps:abseil-cordz_functions',
+    '//external_deps:abseil-cordz_handle',
+    '//external_deps:abseil-cordz_info',
+    '//external_deps:abseil-cordz_sample_token',
+    '//external_deps:abseil-crc_cord_state',
+    '//external_deps:abseil-crc_cpu_detect',
+    '//external_deps:abseil-crc_internal',
+    '//external_deps:abseil-crc32c',
+    '//external_deps:abseil-debugging_internal',
+    '//external_deps:abseil-demangle_internal',
+    '//external_deps:abseil-die_if_null',
+    '//external_deps:abseil-examine_stack',
+    '//external_deps:abseil-exponential_biased',
+    '//external_deps:abseil-failure_signal_handler',
+    '//external_deps:abseil-flags_commandlineflag_internal',
+    '//external_deps:abseil-flags_commandlineflag',
+    '//external_deps:abseil-flags_config',
+    '//external_deps:abseil-flags_internal',
+    '//external_deps:abseil-flags_marshalling',
+    '//external_deps:abseil-flags_parse',
+    '//external_deps:abseil-flags_private_handle_accessor',
+    '//external_deps:abseil-flags_program_name',
+    '//external_deps:abseil-flags_reflection',
+    '//external_deps:abseil-flags_usage_internal',
+    '//external_deps:abseil-flags_usage',
+    '//external_deps:abseil-flags',
+    '//external_deps:abseil-graphcycles_internal',
+    '//external_deps:abseil-hash',
+    '//external_deps:abseil-hashtablez_sampler',
+    '//external_deps:abseil-int128',
+    '//external_deps:abseil-kernel_timeout_internal',
+    '//external_deps:abseil-leak_check',
+    '//external_deps:abseil-log_entry',
+    '//external_deps:abseil-log_flags',
+    '//external_deps:abseil-log_globals',
+    '//external_deps:abseil-log_initialize',
+    '//external_deps:abseil-log_internal_check_op',
+    '//external_deps:abseil-log_internal_conditions',
+    '//external_deps:abseil-log_internal_fnmatch',
+    '//external_deps:abseil-log_internal_format',
+    '//external_deps:abseil-log_internal_globals',
+    '//external_deps:abseil-log_internal_log_sink_set',
+    '//external_deps:abseil-log_internal_message',
+    '//external_deps:abseil-log_internal_nullguard',
+    '//external_deps:abseil-log_internal_proto',
+    '//external_deps:abseil-log_severity',
+    '//external_deps:abseil-log_sink',
+    '//external_deps:abseil-low_level_hash',
+    '//external_deps:abseil-malloc_internal',
+    '//external_deps:abseil-periodic_sampler',
+    '//external_deps:abseil-random_distributions',
+    '//external_deps:abseil-random_internal_distribution_test_util',
+    '//external_deps:abseil-random_internal_platform',
+    '//external_deps:abseil-random_internal_pool_urbg',
+    '//external_deps:abseil-random_internal_randen_hwaes_impl',
+    '//external_deps:abseil-random_internal_randen_hwaes',
+    '//external_deps:abseil-random_internal_randen_slow',
+    '//external_deps:abseil-random_internal_randen',
+    '//external_deps:abseil-random_internal_seed_material',
+    '//external_deps:abseil-random_seed_gen_exception',
+    '//external_deps:abseil-raw_hash_set',
+    '//external_deps:abseil-raw_logging_internal',
+    '//external_deps:abseil-scoped_set_env',
+    '//external_deps:abseil-spinlock_wait',
+    '//external_deps:abseil-stacktrace',
+    '//external_deps:abseil-status',
+    '//external_deps:abseil-statusor',
+    '//external_deps:abseil-str_format_internal',
+    '//external_deps:abseil-strerror',
+    '//external_deps:abseil-string_view',
+    '//external_deps:abseil-strings_internal',
+    '//external_deps:abseil-strings',
+    '//external_deps:abseil-symbolize',
+    '//external_deps:abseil-synchronization',
+    '//external_deps:abseil-throw_delegate',
+    '//external_deps:abseil-time_zone',
+    '//external_deps:abseil-time'
+  ],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
