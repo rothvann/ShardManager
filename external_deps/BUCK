@@ -37,7 +37,7 @@ filegroup(
 genrule(
   name = 'build-folly',
   srcs = ['//external_deps:folly-files'],
-  cmd = '(cd ${SRCDIR}/folly-files/folly && python3 ./build/fbcode_builder/getdeps.py --allow-system-packages build --extra-cmake-defines=\'{"FOLLY_CXX_FLAGS": "-O2;-fPIC;-march=native"}\' --install-dir=./out) && cp -r ${SRCDIR}/folly-files/folly/out/. $OUT',
+  cmd = '(cd ${SRCDIR}/folly-files/folly && python3 ./build/fbcode_builder/getdeps.py --allow-system-packages build --extra-cmake-defines=\'{"FOLLY_CXX_FLAGS": "-O2;-fPIC;-march=native", "DCMAKE_CXX_STANDARD": "17"}\' --install-dir=./out) && cp -r ${SRCDIR}/folly-files/folly/out/. $OUT',
   out = '.',
 )
 
@@ -76,7 +76,7 @@ filegroup(
 genrule(
   name = 'build-unordered-dense',
   srcs = ['//external_deps:unordered-dense-files'],
-  cmd = 'cmake -S $SRCS/unordered_dense/. -B ./ -DCMAKE_INSTALL_PREFIX=$OUT -DCMAKE_CXX_FLAGS="-O2 -march=native" && cmake --build . --target install',
+  cmd = 'cmake -S $SRCS/unordered_dense/. -B ./ -DCMAKE_INSTALL_PREFIX=$OUT -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS="-O2 -march=native" && cmake --build . --target install',
   out = '.',
 )
 
@@ -752,7 +752,7 @@ filegroup(
 genrule(
   name = 'build-gtest',
   srcs = ['//external_deps:gtest-files'],
-  cmd = 'cmake -S $SRCS/googletest/. -B ./ -DCMAKE_CXX_FLAGS="-O2 -march=native" -DCMAKE_INSTALL_PREFIX=$OUT -DGTEST_HAS_PTHREAD=1 && make && make install',
+  cmd = 'cmake -S $SRCS/googletest/. -B ./ -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS="-O2 -march=native" -DCMAKE_INSTALL_PREFIX=$OUT -DGTEST_HAS_PTHREAD=1 && make && make install',
   out = '.',
 )
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 git submodule init
-git submodule update
+git submodule update --remote --rebase
 
 
 # General deps + deps for folly not installed
