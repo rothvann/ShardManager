@@ -29,8 +29,10 @@ cxx_library(
   srcs = [
   ],
   exported_headers = [
-    'Constraint.h',
-    'ConstraintUtils.h',
+    'constraints/CapacityConstraint.h',
+    'constraints/Constraint.h',
+    'constraints/ConstraintUtils.h',
+    'constraints/LoadBalancingConstraint.h',
   ],
   exported_deps = [
     '//psychopomp/placer:states',

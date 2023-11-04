@@ -4,7 +4,7 @@
 #include <memory>
 
 #include "folly/MapUtil.h"
-#include "psychopomp/placer/Constraint.h"
+#include "psychopomp/placer/constraints/Constraint.h"
 #include "psychopomp/placer/ExpressionTree.h"
 #include "psychopomp/placer/State.h"
 #include "psychopomp/placer/utils/Committable.h"

@@ -1,6 +1,8 @@
 #include "gtest/gtest.h"
 #include "psychopomp/placer/IterativeLocalSearch.h"
 #include "psychopomp/placer/utils/Committable.h"
+#include "psychopomp/placer/constraints/CapacityConstraint.h"
+#include "psychopomp/placer/constraints/LoadBalancingConstraint.h"
 #include <fmt/core.h>
 
 namespace psychopomp {

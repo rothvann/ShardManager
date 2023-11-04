@@ -1,156 +1,8 @@
 #pragma once
 
-#include <iostream>
-#include <memory>
-
-#include "psychopomp/Types.h"
-#include "psychopomp/placer/ConstraintUtils.h"
-#include "psychopomp/placer/ExpressionTree.h"
-#include "psychopomp/placer/State.h"
+#include "psychopomp/placer/constraints/Constraint.h"
 
 namespace psychopomp {
-
-class Constraint {
- public:
-  Constraint(std::shared_ptr<State> state, std::string name = "")
-      : state_(state), name_(name) {}
-  virtual void canaryMoves(std::shared_ptr<MovementMap> comittiedMoves,
-                           std::shared_ptr<MovementMap> canaryMoves) = 0;
-
-  void commit() {
-    commitMoves();
-
-    auto& binWeightInfo = state_->getBinWeightInfo();
-    binWeightInfo.binWeightMap.commit();
-    binWeightInfo.totalWeight.commit();
-  }
-
- protected:
-  virtual std::string getName() const;
-  virtual void commitMoves() = 0;
-
-  void addBinWeight(DomainId domainId, int64_t binWeightDelta) {
-    auto& binWeightInfo = state_->getBinWeightInfo();
-    auto prevWeight = binWeightInfo.binWeightMap.get(domainId).value_or(0);
-    binWeightInfo.binWeightMap.set(true /* isCanary */,
-                                   prevWeight + binWeightDelta, domainId);
-    addTotalWeight(binWeightDelta);
-  }
-
-  void addTotalWeight(int64_t weightDelta) {
-    auto& binWeightInfo = state_->getBinWeightInfo();
-    auto prevTotalWeight = binWeightInfo.totalWeight.get().value_or(0);
-    binWeightInfo.totalWeight.set(true /* isCanary */,
-                                  prevTotalWeight + weightDelta);
-  }
-
-  std::shared_ptr<State> state_;
-};
-
-class MetricConstraint : public Constraint {
- public:
-  MetricConstraint(std::shared_ptr<State> state, Domain domain,
-                   const std::vector<DomainId>& domainIds, Metric metric,
-                   int32_t capacity, int32_t faultWeight)
-      : Constraint(state),
-        domain_(domain),
-        metric_(metric),
-        capacity_(capacity),
-        faultWeight_(faultWeight) {
-    auto func =
-        [&](const AssignmentTree& assignmentTree,
-            const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
-            const MetricsMap& metricMap,
-            const std::vector<DomainId>& changedChildren,
-            std::pair<Domain, DomainId> node) -> int32_t {
-      auto childDomain = assignmentTree.getChildDomain(node.first);
-      int64_t val = metricMap.get(node.first, node.second).value_or(0);
-
-      for (auto child : changedChildren) {
-        bool isFutureChild = true;
-        if (node.first == state_->getBinDomain()) {
-          for (auto movementMap : movementMaps) {
-            auto nextBin = movementMap->getNextBin(child);
-            if (nextBin.has_value() && nextBin.value() != node.second) {
-              isFutureChild = false;
-              break;
-            }
-          }
-        }
-
-        int32_t metric = 0;
-        if (childDomain == state_->getShardDomain()) {
-          metric = state_->getShardMetric(metric_, child);
-        } else {
-          metric =
-              metricMap.get(childDomain, child).value_or(0) -
-              metricMap.getFromCommittedMap(childDomain, child).value_or(0);
-        }
-        if (isFutureChild) {
-          val += metric;
-        } else {
-          val -= metric;
-        }
-      }
-
-      updateWeightIfPossible(node, val);
-      return val;
-    };
-    expressionTree_ = std::make_shared<ExpressionTree>(state_, metric_, domain_,
-                                                       domainIds, func);
-    commit();
-  }
-
-  void canaryMoves(std::shared_ptr<MovementMap> committedMoves,
-                   std::shared_ptr<MovementMap> canaryMoves) override {
-    domainFaultMap_.clear();
-    expressionTree_->canaryMoves(committedMoves, canaryMoves);
-    auto& binWeightInfo = state_->getBinWeightInfo();
-  }
-
-  void commitMoves() override {
-    expressionTree_->commitMoves();
-    domainFaultMap_.commit();
-  }
-
- private:
-  void updateWeightIfPossible(std::pair<Domain, DomainId> node, int64_t val) {
-    if (node.first == domain_) {
-      int64_t prevWeight = domainFaultMap_.get(node.second).value_or(0);
-
-      auto currentWeight = 0;
-      if (val > capacity_) {
-        currentWeight = (val - capacity_) * faultWeight_;
-      }
-
-      domainFaultMap_.set(true /* isCanary */, currentWeight, node.second);
-
-      auto weightDelta = currentWeight - prevWeight;
-      if (weightDelta == 0) {
-        return;
-      }
-
-      if (domain_ == state_->getBinDomain()) {
-        addBinWeight(node.second, weightDelta);
-      } else {
-        addTotalWeight(weightDelta);
-      }
-    }
-  }
-  
-  std::string getName() const override {
-    return "Metric Constraint";
-  }
-
-  Domain domain_;
-  Metric metric_;
-  int32_t capacity_;
-  int32_t faultWeight_;
-
-  std::shared_ptr<ExpressionTree> expressionTree_;
-  CommittableMap<std::unordered_map<DomainId, int64_t>, int64_t>
-      domainFaultMap_;
-};
 
 class LoadBalancingConstraint : public Constraint {
  public:
@@ -231,7 +83,6 @@ class LoadBalancingConstraint : public Constraint {
     if (domain == domain_) {
       domainUpdatedSet_.insert(domainId);
     }
-    
 
     if (domain == state_->getBinDomain()) {
       int32_t sum = 0;
@@ -248,7 +99,7 @@ class LoadBalancingConstraint : public Constraint {
       std::vector<int32_t> metrics;
       for (auto child : childVector) {
         auto metric = metricMap.get(childDomain, child);
-        if(metric) {
+        if (metric) {
           metrics.emplace_back(*metric);
         }
       }
@@ -279,10 +130,8 @@ class LoadBalancingConstraint : public Constraint {
       addBinWeight(domainId, weightDelta);
     }
   }
-  
-  std::string getName() const override {
-    return "Load Balancing Constraint";
-  }
+
+  std::string getName() const override { return "Load Balancing Constraint"; }
 
   Domain domain_;
   Domain loadBalancingDomain_;
@@ -298,5 +147,4 @@ class LoadBalancingConstraint : public Constraint {
   CommittableMap<std::unordered_map<DomainId, int64_t>, int64_t>
       domainFaultMap_;
 };
-
 }  // namespace psychopomp
