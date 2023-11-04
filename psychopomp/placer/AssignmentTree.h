@@ -16,11 +16,11 @@ class AssignmentTree {
 
   std::vector<std::pair<Domain, DomainId>> getParents(
       Domain domain, DomainId domainId,
-      std::vector<std::shared_ptr<MovementMap>> movementMaps) const;
+      std::vector<std::shared_ptr<MovementMap>> movementMaps = {}) const;
 
   std::pair<Domain, std::vector<DomainId>> getChildren(
       Domain domain, DomainId domainId,
-      std::vector<std::shared_ptr<MovementMap>> movementMaps) const;
+      std::vector<std::shared_ptr<MovementMap>> movementMaps = {}) const;
 
   std::vector<DomainId>& getChildren(Domain domain, DomainId domainId);
 

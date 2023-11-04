@@ -6,99 +6,6 @@
 namespace psychopomp {
 
 TEST(TestTree, First) {
-  std::vector<std::string> names = {
-    "bad_any_cast_impl",
-    "bad_optional_access",
-    "bad_variant_access",
-    "base",
-    "city",
-    "civil_time",
-    "cord_internal",
-    "cord",
-    "cordz_functions",
-    "cordz_handle",
-    "cordz_info",
-    "cordz_sample_token",
-    "crc_cord_state",
-    "crc_cpu_detect",
-    "crc_internal",
-    "crc32c",
-    "debugging_internal",
-    "demangle_internal",
-    "die_if_null",
-    "examine_stack",
-    "exponential_biased",
-    "failure_signal_handler",
-    "flags_commandlineflag_internal",
-    "flags_commandlineflag",
-    "flags_config",
-    "flags_internal",
-    "flags_marshalling",
-    "flags_parse",
-    "flags_private_handle_accessor",
-    "flags_program_name",
-    "flags_reflection",
-    "flags_usage_internal",
-    "flags_usage",
-    "flags",
-    "graphcycles_internal",
-    "hash",
-    "hashtablez_sampler",
-    "int128",
-    "kernel_timeout_internal",
-    "leak_check",
-    "log_entry",
-    "log_flags",
-    "log_globals",
-    "log_initialize",
-    "log_internal_check_op",
-    "log_internal_conditions",
-    "log_internal_fnmatch",
-    "log_internal_format",
-    "log_internal_globals",
-    "log_internal_log_sink_set",
-    "log_internal_message",
-    "log_internal_nullguard",
-    "log_internal_proto",
-    "log_severity",
-    "log_sink",
-    "low_level_hash",
-    "malloc_internal",
-    "periodic_sampler",
-    "random_distributions",
-    "random_internal_distribution_test_util",
-    "random_internal_platform",
-    "random_internal_pool_urbg",
-    "random_internal_randen_hwaes_impl",
-    "random_internal_randen_hwaes",
-    "random_internal_randen_slow",
-    "random_internal_randen",
-    "random_internal_seed_material",
-    "random_see_gen_exception",
-    "raw_hash_set",
-    "raw_logging_internal",
-    "scoped_set_env",
-    "spinlock_wait",
-    "stacktrace",
-    "status",
-    "statusor",
-    "str_format_internal",
-    "strerror",
-    "string_view",
-    "strings_internal",
-    "strings",
-    "symbolize",
-    "sychronization",
-    "throw_delegate",
-    "time_zone",
-    "time"
-  };
-  
-  for(auto name : names) {
-    std::cout << fmt::format("\"//external_deps:lib-abseil-{}\",", name) << std::endl;
-  }
-
-  /*
   size_t numShards = 5000;
   size_t numBins = 100;
   std::vector<DomainId> shards;
@@ -146,7 +53,6 @@ TEST(TestTree, First) {
     sum += shards.size();
   }
   std::cout << sum << std::endl;
-  */
 }
 }  // namespace psychopomp
 

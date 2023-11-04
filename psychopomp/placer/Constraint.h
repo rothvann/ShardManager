@@ -26,6 +26,7 @@ class Constraint {
   }
 
  protected:
+  virtual std::string getName() const;
   virtual void commitMoves() = 0;
 
   void addBinWeight(DomainId domainId, int64_t binWeightDelta) {
@@ -44,7 +45,6 @@ class Constraint {
   }
 
   std::shared_ptr<State> state_;
-  std::string name_;
 };
 
 class MetricConstraint : public Constraint {
@@ -136,6 +136,10 @@ class MetricConstraint : public Constraint {
         addTotalWeight(weightDelta);
       }
     }
+  }
+  
+  std::string getName() const override {
+    return "Metric Constraint";
   }
 
   Domain domain_;
@@ -274,6 +278,10 @@ class LoadBalancingConstraint : public Constraint {
       int64_t weightDelta = newWeight - prevWeight;
       addBinWeight(domainId, weightDelta);
     }
+  }
+  
+  std::string getName() const override {
+    return "Load Balancing Constraint";
   }
 
   Domain domain_;

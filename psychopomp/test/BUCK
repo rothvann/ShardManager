@@ -6,3 +6,9 @@ cxx_binary(
     '-lpthread',
   ],
 )
+
+cxx_binary(
+  name = 'assignment_tree_test',
+  srcs = ['AssignmentTreeTest.cpp'],
+  deps = ['//psychopomp/placer:placer', '//external_deps:gtest'],
+)
