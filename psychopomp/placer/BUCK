@@ -69,3 +69,19 @@ cxx_library(
     'PUBLIC',
   ],
 )
+
+cxx_library(
+  name = 'simulation',
+  exported_headers = [
+    'simulation/RandomTreeGenerator.h',
+    'simulation/ShardGenerator.h',
+  ],
+  exported_deps = [
+    '//psychopomp:psychopomp_common', 
+    '//psychopomp/placer/utils:utils', 
+  ],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)

@@ -6,13 +6,32 @@
 
 namespace psychopomp {
 
-State::State(const size_t numShards,
-             const std::vector<std::vector<DomainId>>& parentChildMap)
-    : domainCounter_(0), movementMap_(std::make_shared<MovementMap>()) {
-  setShards(numShards);
+State::State(const std::vector<ShardInfo>& shardInfoVector,
+             const std::vector<size_t> domainSizes,
+             const std::vector<std::vector<DomainId>>& binDomainsMapping,
+             const std::vector<std::vector<DomainId>>& binShardMapping)
+    : domainCounter_(0),
+      movementMap_(std::make_shared<MovementMap>()),
+      shardInfoVector_(shardInfoVector) {
+  setShards(shardInfoVector_.size());
   binDomain_ = getNewDomain();
   assignmentTree_ = std::make_shared<AssignmentTree>(shardDomain_, binDomain_);
-  addDomainInternal(binDomain_, shardDomain_, parentChildMap);
+  addDomainInternal(binDomain_, shardDomain_, binShardMapping);
+
+  auto childDomain = binDomain_;
+  auto numBins = binShardMapping.size();
+  for (size_t domain = 0; domain < domainSizes.size(); domain++) {
+    auto parentDomain = getNewDomain();
+    std::vector<std::vector<DomainId>> parentChildMapping(domainSizes[domain]);
+    for (DomainId binId = 0; binId < numBins; binId++) {
+      auto parentId = binDomainsMapping[binId][domain];
+      parentChildMapping[parentId].emplace_back(binId);
+      binDomainsMapping_[binId][parentDomain] = parentId;
+    }
+
+    addDomainInternal(parentDomain, childDomain, parentChildMapping);
+    childDomain = parentDomain;
+  }
 }
 
 void State::setShards(const size_t numShards) {
@@ -55,6 +74,15 @@ void State::addMetric(Metric metric, const std::vector<int32_t>& metricVector) {
 Domain State::getShardDomain() const { return shardDomain_; }
 
 Domain State::getBinDomain() const { return binDomain_; }
+
+std::optional<DomainId> State::getBinParentFromDomain(
+    DomainId binId, Domain parentDomain) const {
+  auto* ptr = folly::get_ptr(binDomainsMapping_, binId, parentDomain);
+  if (ptr) {
+    return *ptr;
+  }
+  return std::nullopt;
+}
 
 size_t State::getDomainSize(Domain domain) const {
   return folly::get_default(domainElements_, domain, 0);

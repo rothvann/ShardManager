@@ -36,7 +36,8 @@ class AssignmentTree {
   // Shard Assignment
   std::unordered_map<
       Domain,
-      std::unordered_map<DomainId, std::unordered_map<Domain, std::unordered_set<DomainId>>>>
+      std::unordered_map<
+          DomainId, std::unordered_map<Domain, DomainId>>>
       childToParentMap_;
 
   std::unordered_map<Domain, Domain> parentToChildDomainMap_;

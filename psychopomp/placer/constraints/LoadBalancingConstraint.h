@@ -13,8 +13,7 @@ class LoadBalancingConstraint : public Constraint {
         domain_(domain),
         metric_(metric),
         maxDelta_(maxDelta),
-        faultWeightMultiplier_(faultWeightMultiplier),
-        domainSize_(domainIds.size()) {
+        faultWeightMultiplier_(faultWeightMultiplier) {
     std::vector<std::vector<DomainId>> loadBalancingDomainIdMap = {domainIds};
     loadBalancingDomain_ = state->addDomain(domain_, loadBalancingDomainIdMap);
     auto minFunc =
@@ -138,7 +137,6 @@ class LoadBalancingConstraint : public Constraint {
   Metric metric_;
   int32_t maxDelta_;
   double faultWeightMultiplier_;
-  int32_t domainSize_;
 
   std::shared_ptr<ExpressionTree> minExpressionTree_;
   std::shared_ptr<ExpressionTree> maxExpressionTree_;

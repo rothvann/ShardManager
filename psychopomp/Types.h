@@ -11,6 +11,8 @@ namespace psychopomp {
 typedef size_t Domain;
 typedef size_t DomainId;
 typedef size_t Metric;
+typedef size_t ShardRangeId;
+typedef size_t ReplicaId; 
 
 struct RangeJoinInfo {};
 
@@ -27,42 +29,10 @@ enum class RangeState {
   UNKNOWN,
 };
 
-struct RangeMutation {
-  std::vector<std::pair<int64_t, int64_t>> currentRanges;
-  std::vector<std::pair<int64_t, int64_t>> futureRanges;
+struct ShardInfo {
+  ShardRangeId shardRangeId; 
+  ReplicaId replicaId;
 };
 
-struct AllocatorOutput {
-  std::vector<std::pair<int64_t, int64_t>> shardRanges;
-  std::vector<RangeMutation> shardMutations;
-};
-
-struct AllocatorInput {
-  std::vector<std::pair<int64_t, int64_t>> shardRanges;
-  std::vector<RangeState> shardRangeStates;
-
-  std::vector<size_t> shardToRangeIndex;
-
-  std::vector<RangeMutation> prevShardMutations;
-  std::unordered_map<Metric, std::vector<int32_t>> metricVectorMap_;
-};
-
-struct PlacerOutput {
-  std::vector<std::pair<DomainId, std::pair<DomainId, DomainId>>>
-      shardMovements;
-};
-
-struct PlacerInput {
-  std::vector<int64_t> shardRanges;
-  std::vector<size_t> shardToRangeIndex;
-  std::vector<bool> isPrimaryShard;
-  std::unordered_map<Metric, std::vector<int32_t>> metricVectorMap_;
-
-  std::vector<std::vector<DomainId>> binToShardIds;
-  std::vector<RangeMutation> shardMutations;
-
-  std::vector<std::pair<DomainId, std::pair<DomainId, DomainId>>>
-      shardMovements;
-};
 
 }  // namespace psychopomp

@@ -6,10 +6,12 @@ namespace psychopomp {
 
 class MetricConstraint : public Constraint {
  public:
-  MetricConstraint(std::shared_ptr<State> state, Domain domain,
+  MetricConstraint(std::shared_ptr<State> state,
+                   MovementConsistency consistency, Domain domain,
                    const std::vector<DomainId>& domainIds, Metric metric,
                    int32_t capacity, int32_t faultWeight)
       : Constraint(state),
+        consistency_(consistency),
         domain_(domain),
         metric_(metric),
         capacity_(capacity),
@@ -20,38 +22,8 @@ class MetricConstraint : public Constraint {
             const MetricsMap& metricMap,
             const std::vector<DomainId>& changedChildren,
             std::pair<Domain, DomainId> node) -> int32_t {
-      auto childDomain = assignmentTree.getChildDomain(node.first);
-      int64_t val = metricMap.get(node.first, node.second).value_or(0);
-
-      for (auto child : changedChildren) {
-        bool isFutureChild = true;
-        if (node.first == state_->getBinDomain()) {
-          for (auto movementMap : movementMaps) {
-            auto nextBin = movementMap->getNextBin(child);
-            if (nextBin.has_value() && nextBin.value() != node.second) {
-              isFutureChild = false;
-              break;
-            }
-          }
-        }
-
-        int32_t metric = 0;
-        if (childDomain == state_->getShardDomain()) {
-          metric = state_->getShardMetric(metric_, child);
-        } else {
-          metric =
-              metricMap.get(childDomain, child).value_or(0) -
-              metricMap.getFromCommittedMap(childDomain, child).value_or(0);
-        }
-        if (isFutureChild) {
-          val += metric;
-        } else {
-          val -= metric;
-        }
-      }
-
-      updateWeightIfPossible(node, val);
-      return val;
+      return calculate(assignmentTree, movementMaps, metricMap, changedChildren,
+                       node);
     };
     expressionTree_ = std::make_shared<ExpressionTree>(state_, metric_, domain_,
                                                        domainIds, func);
@@ -71,6 +43,17 @@ class MetricConstraint : public Constraint {
   }
 
  private:
+  int32_t calculate(
+      const AssignmentTree& assignmentTree,
+      const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
+      const MetricsMap& metricMap, const std::vector<DomainId>& changedChildren,
+      std::pair<Domain, DomainId> node) {
+    auto val = sumOperator(state_, metric_, assignmentTree, movementMaps, metricMap,
+                           changedChildren, node, consistency_);
+    updateWeightIfPossible(node, val);
+    return val;
+  }
+
   void updateWeightIfPossible(std::pair<Domain, DomainId> node, int64_t val) {
     if (node.first == domain_) {
       int64_t prevWeight = domainFaultMap_.get(node.second).value_or(0);
@@ -97,6 +80,7 @@ class MetricConstraint : public Constraint {
 
   std::string getName() const override { return "Metric Constraint"; }
 
+  MovementConsistency consistency_;
   Domain domain_;
   Metric metric_;
   int32_t capacity_;
@@ -106,4 +90,4 @@ class MetricConstraint : public Constraint {
   CommittableMap<std::unordered_map<DomainId, int64_t>, int64_t>
       domainFaultMap_;
 };
-}  // namespace psyschopomp
+}  // namespace psychopomp

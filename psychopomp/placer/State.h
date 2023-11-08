@@ -2,6 +2,7 @@
 
 #include <experimental/optional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -22,10 +23,13 @@ struct BinWeightInfo {
 
 class State {
  public:
-  State(const size_t numShards, const std::vector<std::vector<DomainId>>& parentChildMap);
+  State(const std::vector<ShardInfo>& shardInfoVector,
+        const std::vector<size_t> domainSizes_,
+        const std::vector<std::vector<DomainId>>& binDomainsMapping,
+        const std::vector<std::vector<DomainId>>& binShardMapping);
 
   Domain addDomain(const Domain& childDomain,
-                 const std::vector<std::vector<DomainId>>& parentChildMap);
+                   const std::vector<std::vector<DomainId>>& parentChildMap);
 
   std::shared_ptr<AssignmentTree> getAssignmentTree() const;
 
@@ -36,6 +40,9 @@ class State {
   Domain getShardDomain() const;
   Domain getBinDomain() const;
 
+  std::optional<DomainId> getBinParentFromDomain(DomainId binId,
+                                                 Domain parentDomain) const;
+
   size_t getDomainSize(Domain domain) const;
 
   std::vector<Metric> getMetrics() const;
@@ -45,8 +52,9 @@ class State {
   BinWeightInfo& getBinWeightInfo();
 
  private:
-  void addDomainInternal(const Domain& parentDomain, const Domain& childDomain,
-                 const std::vector<std::vector<DomainId>>& parentChildMap);
+  void addDomainInternal(
+      const Domain& parentDomain, const Domain& childDomain,
+      const std::vector<std::vector<DomainId>>& parentChildMap);
   Domain getNewDomain();
 
   void setShards(const size_t numShards);
@@ -61,6 +69,10 @@ class State {
   std::unordered_map<Domain, size_t> domainElements_;
   std::unordered_map<Domain, std::unordered_map<DomainId, DomainId>>
       domainIdMap_;
+
+  std::vector<ShardInfo> shardInfoVector_;
+  std::unordered_map<DomainId, std::unordered_map<Domain, DomainId>>
+      binDomainsMapping_;
 
   std::shared_ptr<AssignmentTree> assignmentTree_;
 

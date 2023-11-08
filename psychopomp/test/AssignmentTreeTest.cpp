@@ -27,7 +27,7 @@ TEST(AssignmentTreeTest, MappingTest) {
 
   Domain testDomain = 2;
   tree.addMapping({testDomain, 0}, {shardDomain, {0, 1, 2, 3}});
-  tree.addMapping({testDomain, 1}, {shardDomain, {3, 4, 5}});
+  tree.addMapping({testDomain, 1}, {shardDomain, {4, 5}});
 
   EXPECT_ANY_THROW(tree.getChildDomain(shardDomain));
   EXPECT_EQ(tree.getChildDomain(binDomain), shardDomain);
@@ -48,7 +48,7 @@ TEST(AssignmentTreeTest, MappingTest) {
   {
     auto shardsFromTree = tree.getChildren(testDomain, 1);
     EXPECT_EQ(std::set(shardsFromTree.begin(), shardsFromTree.end()),
-              std::set<size_t>({3, 4, 5}));
+              std::set<size_t>({4, 5}));
   }
 
   {
@@ -61,8 +61,7 @@ TEST(AssignmentTreeTest, MappingTest) {
     auto parentsFromTree = tree.getParents(shardDomain, 3);
     EXPECT_EQ(std::set(parentsFromTree.begin(), parentsFromTree.end()),
               std::set({std::make_pair(binDomain, (DomainId)1),
-                        std::make_pair(testDomain, (DomainId)0),
-                        std::make_pair(testDomain, (DomainId)1)}));
+                        std::make_pair(testDomain, (DomainId)0)}));
   }
 
   auto movementMap = std::make_shared<MovementMap>();

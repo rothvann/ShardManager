@@ -11,70 +11,76 @@ message ShardRange {
     int64 range_end = 2;
 }
 
-enum ShardPlacementStatus {
-    PLACEMENT_STATUS_UNKNOWN = 0;
-    PLACEMENT_STATUS_PREPARING = 1;
-    PLACEMENT_STATUS_IDLE = 2;
-    PLACEMENT_STATUS_STARTING = 3;
-    PLACEMENT_STATUS_ACTIVE = 4;
-    PLACEMENT_STATUS_STOPPING = 5;
-    PLACEMENT_STATUS_DROPPED = 6;
+enum ShardRangeStatus {
+    SHARD_RANGE_STATUS_UNKNOWN = 0;
+    SHARD_RANGE_STATUS_ADDED = 1;
+    SHARD_RANGE_STATUS_PENDING_ADDED = 2;
+    SHARD_RANGE_STATUS_PENDING_DROPPED = 3;
+    SHARD_RANGE_STATUS_FORWARDING = 4; 
+    SHARD_RANGE_STATUS_PENDING_FORWARDING = 5; 
 }
 
-enum HealthStatus {
-    HEALTH_STATUS_UNHEALTHY = 0;
-    HEALTH_STATUS_HEALTHY = 1;
-}
-
-message ShardState {
+message ShardRangeInfo {
     ShardRange range = 1;
-    ShardPlacementStatus status = 2;
+    ShardRangeStatus status = 2;
 }
 
-enum BinStatus {
-    BIN_STATUS_UNHEALTHY = 0;
-    BIN_STATUS_HEALTHY = 1;
-    BIN_STATUS_REQUEST_DRAIN = 2;
-}
-
-message BinState {
-    repeated ShardState shard_states = 1;
-    BinStatus status = 2;
-}
-
-
-/* 
-Service Declarations
-*/
 enum ShardUpdateAction {
     SHARD_UPDATE_ACTION_UNKNOWN = 0;
-    SHARD_UPDATE_ACTION_PREPARE = 1;
-    SHARD_UPDATE_ACTION_START = 2;
-    SHARD_UPDATE_ACTION_STOP = 3;
-    SHARD_UPDATE_ACTION_DROP = 4;
+    SHARD_UPDATE_ACTION_ADD = 1;
+    SHARD_UPDATE_ACTION_DROP = 2;
+    SHARD_UPDATE_ACTION_FORWARD = 3;
 }
 
 message ShardUpdateRequest {
-    ShardUpdateAction action = 1;
-    ShardRange range = 2;
+    int64 id = 1;
+    ShardUpdateAction action = 2;
+    ShardRange range = 3;
+    string next_bin = 4;
 }
 
 message ShardUpdateResponse {
-    bool success = 1;
+    int64 shard_update_id = 1;
+    bool success = 2;
 }
 
+message AcknowledgeResponse {
+    int64 id = 1;
+}
+
+message BinState {
+    repeated ShardRangeInfo shard_range_info = 1;
+}
+ 
+/* Empty */
+message RequestDrain {
+}
+
+/* Empty */
 message HeartBeatResponse {
-    BinState binState = 1;
 }
 
 /* Empty */
 message HeartBeatRequest {
 }
 
+message ConnectionRequest {
+    string service_name = 1;
+    string service_key = 2;
+    string bin_name = 3;
+    BinState bin_state = 4;
+}
+
+/* Empty */
+message ConnectionResponse {
+}
+
 message ServerMessage {
     oneof message {
         HeartBeatRequest heartbeat_request = 1;
         ShardUpdateRequest shard_update_request = 2;
+        ConnectionResponse connection_response = 3;
+        AcknowledgeResponse acknowledge_response = 4;
     }
 }
 
@@ -82,9 +88,13 @@ message ClientMessage {
     oneof message {
         HeartBeatResponse heartbeat = 1;
         ShardUpdateResponse shard_update_response = 2;
+        ConnectionRequest connection_request = 3;
     }
 }
 
+/* 
+Service Declarations
+*/
 service Psychopomp {
     rpc registerStream(stream ClientMessage) returns (stream ServerMessage);
 }

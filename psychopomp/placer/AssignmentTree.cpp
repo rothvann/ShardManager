@@ -23,7 +23,7 @@ void AssignmentTree::addMapping(
   parentToChildDomainMap_[parentDomain] = childDomain;
 
   for (auto child : childrenDomainIds) {
-    childToParentMap_[childDomain][child][parentDomain].insert(parentDomainId);
+    childToParentMap_[childDomain][child].emplace(parentDomain, parentDomainId);
   }
 
   parentToChildMap_[parentDomain][parentDomainId] =
@@ -40,10 +40,8 @@ std::vector<std::pair<Domain, DomainId>> AssignmentTree::getParents(
 
     domainParents.reserve(domainParentsMap.size());
 
-    for (auto [domain, parents] : domainParentsMap) {
-      for (auto domainId : parents) {
-        domainParents.emplace_back(domain, domainId);
-      }
+    for (auto [domain, domainId] : domainParentsMap) {
+      domainParents.emplace_back(domain, domainId);
     }
   }
 

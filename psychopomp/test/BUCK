@@ -1,7 +1,7 @@
 cxx_binary(
   name = 'test',
   srcs = ['TestTree.cpp'],
-  deps = ['//psychopomp/placer:placer', '//external_deps:gtest'],
+  deps = ['//psychopomp/placer:placer', '//psychopomp/placer:simulation', '//external_deps:gtest'],
   linker_flags = [
     '-lpthread',
   ],
@@ -12,3 +12,11 @@ cxx_binary(
   srcs = ['AssignmentTreeTest.cpp'],
   deps = ['//psychopomp/placer:placer', '//external_deps:gtest'],
 )
+
+
+cxx_binary(
+  name = 'movement_map_test',
+  srcs = ['MovementMapTest.cpp'],
+  deps = ['//psychopomp/placer:placer', '//external_deps:gtest'],
+)
+
