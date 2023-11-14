@@ -3,14 +3,7 @@
 namespace psychopomp {
 
 RequestHandler::RequestHandler(Psychopomp::AsyncService* service,
-                               grpc::ServerCompletionQueue* completionQueue)
-    : hasEnded(false) {
-  stream_.reset(
-      new grpc::ServerAsyncReaderWriter<ServerMessage, ClientMessage>(&ctx_));
-  service->RequestregisterStream(&ctx_, stream_.get(), completionQueue,
-                                 completionQueue,
-                                 getOpTag(RequestHandlerTag::Op::CONNECT));
-
+                               grpc::ServerCompletionQueue* completionQueue) {
   requestHandlerTags_.emplace_back(new RequestHandlerTag{
       reinterpret_cast<void*>(this), RequestHandlerTag::Op::CONNECT});
   requestHandlerTags_.emplace_back(new RequestHandlerTag{
@@ -19,6 +12,13 @@ RequestHandler::RequestHandler(Psychopomp::AsyncService* service,
       reinterpret_cast<void*>(this), RequestHandlerTag::Op::WRITE});
   requestHandlerTags_.emplace_back(new RequestHandlerTag{
       reinterpret_cast<void*>(this), RequestHandlerTag::Op::FINISH});
+
+  stream_.reset(
+      new grpc::ServerAsyncReaderWriter<ServerMessage, ClientMessage>(&ctx_));
+  service->RequestregisterStream(&ctx_, stream_.get(), completionQueue,
+                                 completionQueue,
+                                 getOpTag(RequestHandlerTag::Op::CONNECT));
+
 }
 
 void RequestHandler::process(RequestHandlerTag::Op op, bool ok) {

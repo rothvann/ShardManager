@@ -26,7 +26,7 @@ void HandlerManager::process(void* handlerTag, bool ok) {
   if (requestHandler) {
     auto requestHandlerPtr = requestHandler->wlock();
     requestHandlerPtr->process(requestHandlerTag->op, ok);
-    if (requestHandlerPtr->hasEnded()) {
+    if (requestHandlerPtr->hasStopped()) {
       removeSyncedRequestHandler(requestHandlerTag->tag);
     }
   }

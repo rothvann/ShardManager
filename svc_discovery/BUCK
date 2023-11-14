@@ -16,3 +16,11 @@ cxx_library(
         'PUBLIC',
     ],
 )
+
+cxx_binary(
+    name = 'test',
+    srcs = [
+        'TestServer.cpp',
+    ],
+    deps = ['//external_deps:folly', '//server_utils:server_utils', '//svc_discovery:svc_discovery', '//proto:service_discovery_cpp'],
+)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include "psychopomp/placer/constraints/Constraint.h"
 
 // Create count map of each shard
@@ -16,5 +17,7 @@ class ExclusionConstraint : public Constraint {
  private:
   Domain exclusionDomain_;
   int32_t faultWeight_;
+
+  std::unordered_map<ShardRangeId, size_t> shardRangeIdCount;
 };
 }  // namespace psychopomp

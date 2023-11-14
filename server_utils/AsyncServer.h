@@ -1,7 +1,7 @@
 #pragma once
 
-#include <folly/executors/CPUThreadPoolExecutor.h>
 #include <folly/Synchronized.h>
+#include <folly/executors/CPUThreadPoolExecutor.h>
 #include <grpcpp/grpcpp.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -15,36 +15,46 @@ namespace server_utils {
 template <typename Service>
 class AsyncServer {
  public:
-  AsyncServer(size_t numIoThreads, std::string serverAddress,
+  AsyncServer(size_t numIoThreads, const std::string& serverAddress,
               std::shared_ptr<HandlerManager<Service>> requestHandlerManager)
-      : numIoThreads_(numIoThreads),
-        serverAddress_(serverAddress),
+      : serverAddress_(serverAddress),
+        numIoThreads_(numIoThreads),
         ioThreadPool_(numIoThreads),
         requestHandlerManager_(requestHandlerManager),
-        service_() {}
+        service_() {
+    init();
+  }
 
   ~AsyncServer() {
+    std::cerr << "Closing" << std::endl;
     server_->Shutdown();
+    
     for (auto& completionQueue : completionQueues_) {
+      std::cerr << "Shtudown cq" << std::endl;
       completionQueue->Shutdown();
     }
-
     ioThreadPool_.join();
   }
 
   void run() {
-    for (size_t i = 0; i < numIoThreads; i++) {
-      ioThreadPool_.add([&]() {
+    server_ = builder_.BuildAndStart();
+    if (server_.get() == nullptr) {
+      std::cerr << "Cannot bind" << std::endl;
+    }
+    std::cerr << "Running server" << std::endl;
+    for (size_t i = 0; i < numIoThreads_; i++) {
+      ioThreadPool_.add([&, i]() {
         void* tag;
         bool ok;
-        // Use flag to end task
-        while (shouldRun_.copy()) {
-          auto& completionQueue = completionQueues_[i];
-          requestHandlerManager_->addHandler(service_, completionQueue);
+
+        while (true) {
+          auto* completionQueue = completionQueues_[i].get();
+          requestHandlerManager_->addHandler(&service_, completionQueue);
 
           bool shutdown = completionQueue->Next(&tag, &ok);
-          
-          if(shutdown) {
+
+          if (shutdown) {
+            std::cerr << "Shutdown in thread" << std::endl;
             break;
           }
 
@@ -52,27 +62,29 @@ class AsyncServer {
         }
       });
     }
-    server_ = serverBuilder_.BuildAndStart();
   }
 
  private:
   void init() {
-    builder_.AddListeningPort(server_address, InsecureServerCredentials());
-    builder.RegisterService(&service_);
+    builder_.AddListeningPort(serverAddress_,
+                              grpc::InsecureServerCredentials());
+    builder_.RegisterService(&service_);
 
-    for (size_t i = 0; i < numIoThreads; i++) {
-      completionQueues_.emplace_back(builder.AddCompletionQueue());
+    for (size_t i = 0; i < numIoThreads_; i++) {
+      auto cq = builder_.AddCompletionQueue();
+      completionQueues_.emplace_back(std::move(cq));
     }
   }
 
   std::string serverAddress_;
-  size_t numIoThreads;
+  size_t numIoThreads_;
+  folly::CPUThreadPoolExecutor ioThreadPool_;
+  std::shared_ptr<HandlerManager<Service>> requestHandlerManager_;
   Service service_;
 
   grpc::ServerBuilder builder_;
-  folly::CPUThreadPoolExecutor ioThreadPool_;
-  std::shared_ptr<HandlerManager<Service>> requestHandlerManager_;
-  std::vector<grpc::ServerCompletionQueue*> completionQueues_;
-  std::unique_ptr<Server> server_;
+
+  std::vector<std::unique_ptr<grpc::ServerCompletionQueue>> completionQueues_;
+  std::unique_ptr<grpc::Server> server_;
 };
 }  // namespace server_utils

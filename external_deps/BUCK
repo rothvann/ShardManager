@@ -61,7 +61,7 @@ prebuilt_cxx_library(
   deps = ['//external_deps:gtest'],
   header_namespace = '',
   exported_headers = ['//external_deps:headers-folly'],
-  exported_linker_flags = ['-lfmt', '-lglog'],
+  exported_linker_flags = ['-lfmt', '-lglog', '-lgflags', '-ldouble-conversion'],
   preferred_linkage = 'static',
   visibility = [
     'PUBLIC',
