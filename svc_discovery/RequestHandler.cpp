@@ -3,7 +3,9 @@
 namespace psychopomp {
 
 RequestHandler::RequestHandler(Psychopomp::AsyncService* service,
-                               grpc::ServerCompletionQueue* completionQueue) {
+                               grpc::ServerCompletionQueue* completionQueue,
+                               HandlerManager* handlerManager)
+    : handlerManager_(handlerManager) {
   requestHandlerTags_.emplace_back(new RequestHandlerTag{
       reinterpret_cast<void*>(this), RequestHandlerTag::Op::CONNECT});
   requestHandlerTags_.emplace_back(new RequestHandlerTag{
@@ -18,26 +20,30 @@ RequestHandler::RequestHandler(Psychopomp::AsyncService* service,
   service->RequestregisterStream(&ctx_, stream_.get(), completionQueue,
                                  completionQueue,
                                  getOpTag(RequestHandlerTag::Op::CONNECT));
-
 }
 
 void RequestHandler::process(RequestHandlerTag::Op op, bool ok) {
   switch (op) {
     case RequestHandlerTag::Op::CONNECT:
       std::cout << "Client connected" << std::endl;
+
+      // Wait for read
+      stream_->Read(&message_, getOpTag(RequestHandlerTag::Op::READ));
       break;
     case RequestHandlerTag::Op::READ: {
-      ClientMessage message;
-      stream_->Read(&message, this);
       // Process read
       std::cout << "Read message from stream" << std::endl;
+
+      if (!hasAuthenticated) {
+        /* authenticate */
+      }
 
       // Check if should wait for next read
       if (!ok) {
         break;
       }
       // Wait for next read
-      stream_->Read(&message, getOpTag(RequestHandlerTag::Op::READ));
+      stream_->Read(&message_, getOpTag(RequestHandlerTag::Op::READ));
       break;
     }
     case RequestHandlerTag::Op::WRITE:
@@ -92,7 +98,7 @@ void* RequestHandler::getOpTag(RequestHandlerTag::Op op) const {
 }
 
 void RequestHandler::attemptSendMessage() {
-  if (status_ == HandlerStatus::STOPPING || status_ == HandlerStatus::STOPPED) {
+  if (status_ == HandlerStatus::STOPPED) {
     return;
   }
   if (opStatusMap_[RequestHandlerTag::Op::WRITE] != OpStatus::INACTIVE) {

@@ -19,7 +19,7 @@ std::vector<std::vector<DomainId>> mapBinsToDomainsRandom(
   }
 
   // Map null bin 0 to null domainIds 0
-  randomBinMapping[0] = std::vector(0, domainSizes.size());
+  randomBinMapping[0] = std::vector(kDefaultBin, domainSizes.size());
 
   for (DomainId binId = 1; binId <= numBins; binId++) {
     std::vector<DomainId> mapping;
@@ -51,7 +51,7 @@ std::vector<std::vector<DomainId>> mapShardsToBinsEmpty(size_t numBins,
                                                         size_t numShards) {
   std::vector<std::vector<DomainId>> binShardMapping(numBins + 1);
   for (DomainId shardId = 0; shardId < numShards; shardId++) {
-    binShardMapping[0].emplace_back(shardId);
+    binShardMapping[kDefaultBin].emplace_back(shardId);
   }
   return binShardMapping;
 }

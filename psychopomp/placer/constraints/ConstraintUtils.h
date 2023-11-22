@@ -41,21 +41,38 @@ bool shouldConsiderShard(
   return shouldConsiderShard(consistency, isFutureChild, isMoving);
 }
 
-bool checkIsFutureChild(
-    const std::vector<std::shared_ptr<psychopomp::MovementMap>>& movementMaps,
-    DomainId child, Domain domain, DomainId currentBin) {
-  for (auto movementMap : movementMaps) {
-    auto nextBin = movementMap->getNextBin(child);
-    if (nextBin.has_value() && nextBin.value() != currentBin) {
-      return false;
+DomainId getCurrentBin(const AssignmentTree& assignmentTree, Domain shardDomain,
+                       DomainId shardId, Domain binDomain) {
+  auto parents = assignmentTree.getParents(shardDomain, shardId, {});
+  for (auto& parent : parents) {
+    if (parent.first == binDomain) {
+      return parent.second;
     }
   }
-  return true;
+  return kDefaultBin;
+}
+
+DomainId getFutureBin(
+    const AssignmentTree& assignmentTree,
+    const std::vector<std::shared_ptr<psychopomp::MovementMap>>& movementMaps,
+    Domain shardDomain, DomainId shardId, Domain binDomain) {
+  for (auto movementMap : movementMaps) {
+    auto nextBin = movementMap->getNextBin(shardId);
+    if (nextBin.has_value()) {
+      return nextBin.value();
+    }
+  }
+  auto parents = assignmentTree.getParents(shardDomain, shardId, {});
+  for (auto& parent : parents) {
+    if (parent.first == binDomain) {
+      return parent.second;
+    }
+  }
+  return kDefaultBin;
 }
 
 int32_t sumOperator(
-    std::shared_ptr<State> state,
-    Metric metric,
+    std::shared_ptr<State> state, Metric metric,
     const AssignmentTree& assignmentTree,
     const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
     const MetricsMap& metricMap, const std::vector<DomainId>& changedChildren,

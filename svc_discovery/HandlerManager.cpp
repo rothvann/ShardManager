@@ -3,14 +3,12 @@
 #include "folly/MapUtil.h"
 
 namespace psychopomp {
-HandlerManager::HandlerManager(
-    std::shared_ptr<ServiceConnections> svcConnections)
-    : svcConnections_(svcConnections) {}
+HandlerManager::HandlerManager(std::shared_ptr<BinManager> binManager)
+    : binManager_(binManager) {}
 
-void HandlerManager::addHandler(Psychopomp::AsyncService* service,
-                                grpc::ServerCompletionQueue* completionQueue) {
+void HandlerManager::addHandler() {
   auto requestHandler = std::make_shared<SyncedRequestHandler>(
-      std::in_place, service, completionQueue);
+      std::in_place, service_, completionQueue_, this);
   auto tag = reinterpret_cast<void*>(requestHandler.get());
   {
     auto handlerMapPtr = requestHandlerMap_.wlock();
@@ -23,14 +21,25 @@ void HandlerManager::process(void* handlerTag, bool ok) {
       reinterpret_cast<RequestHandlerTag*>(handlerTag);
   std::shared_ptr<SyncedRequestHandler> requestHandler =
       getSyncedRequestHandler(requestHandlerTag->tag);
-  if (requestHandler) {
-    auto requestHandlerPtr = requestHandler->wlock();
-    requestHandlerPtr->process(requestHandlerTag->op, ok);
-    if (requestHandlerPtr->hasStopped()) {
-      removeSyncedRequestHandler(requestHandlerTag->tag);
-    }
+  if (!requestHandler) {
+    // log error;
+    return;
+  }
+
+  auto requestHandlerPtr = requestHandler->wlock();
+  requestHandlerPtr->process(requestHandlerTag->op, ok);
+  if (requestHandlerPtr->hasStopped()) {
+    removeSyncedRequestHandler(requestHandlerTag->tag);
+  }
+  if(requestHandlerTag->op == RequestHandlerTag::Op::CONNECT) {
+    addHandler();
   }
 }
+
+bool HandlerManager::registerBin(std::string serviceName, std::string binName) {
+  
+}
+
 
 std::shared_ptr<SyncedRequestHandler> HandlerManager::getSyncedRequestHandler(
     void* tag) {

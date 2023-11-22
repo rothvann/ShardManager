@@ -2,11 +2,12 @@
 
 #include "server_utils/AsyncServer.h"
 #include "svc_discovery/HandlerManager.h"
+#include "svc_discovery/BinManager.h"
 
 int main() {
-  auto svcConnections = std::make_shared<psychopomp::ServiceConnections>();
+  auto binManager = std::make_shared<psychopomp::BinManager>();
   auto handlerManager =
-      std::make_shared<psychopomp::HandlerManager>(svcConnections);
+      std::make_shared<psychopomp::HandlerManager>(binManager);
   {
     auto server = std::make_shared<
         server_utils::AsyncServer<psychopomp::Psychopomp::AsyncService>>(

@@ -75,7 +75,11 @@ Domain State::getShardDomain() const { return shardDomain_; }
 
 Domain State::getBinDomain() const { return binDomain_; }
 
-std::optional<DomainId> State::getBinParentFromDomain(
+const ShardInfo& State::getShardInfo(DomainId shardId) const {
+  return shardInfoVector_[shardId];
+}
+
+std::optional<DomainId> State::getBinParentInDomain(
     DomainId binId, Domain parentDomain) const {
   auto* ptr = folly::get_ptr(binDomainsMapping_, binId, parentDomain);
   if (ptr) {

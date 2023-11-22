@@ -25,27 +25,15 @@ message ShardRangeInfo {
     ShardRangeStatus status = 2;
 }
 
-enum ShardUpdateAction {
-    SHARD_UPDATE_ACTION_UNKNOWN = 0;
-    SHARD_UPDATE_ACTION_ADD = 1;
-    SHARD_UPDATE_ACTION_DROP = 2;
-    SHARD_UPDATE_ACTION_FORWARD = 3;
-}
-
 message ShardUpdateRequest {
-    int64 id = 1;
-    ShardUpdateAction action = 2;
-    ShardRange range = 3;
-    string next_bin = 4;
+    repeated ShardRange assigned_ranges = 1;
+    repeated ShardRange unassigned_ranges = 2;
+    repeated ShardRange forwarded_ranges = 3;
+    repeated string next_bins = 4;
 }
 
-message ShardUpdateResponse {
-    int64 shard_update_id = 1;
-    bool success = 2;
-}
-
-message AcknowledgeResponse {
-    int64 id = 1;
+/* Empty */
+message BinStateRequest {
 }
 
 message BinState {
@@ -71,8 +59,8 @@ message ConnectionRequest {
     BinState bin_state = 4;
 }
 
-/* Empty */
 message ConnectionResponse {
+    bool success = 1;
 }
 
 message ServerMessage {
@@ -80,14 +68,14 @@ message ServerMessage {
         HeartBeatRequest heartbeat_request = 1;
         ShardUpdateRequest shard_update_request = 2;
         ConnectionResponse connection_response = 3;
-        AcknowledgeResponse acknowledge_response = 4;
+        BinStateRequest bin_state_request = 4;
     }
 }
 
 message ClientMessage {
     oneof message {
         HeartBeatResponse heartbeat = 1;
-        ShardUpdateResponse shard_update_response = 2;
+        BinState bin_state = 2;
         ConnectionRequest connection_request = 3;
     }
 }

@@ -40,7 +40,9 @@ class State {
   Domain getShardDomain() const;
   Domain getBinDomain() const;
 
-  std::optional<DomainId> getBinParentFromDomain(DomainId binId,
+  const ShardInfo& getShardInfo(DomainId shardId) const;
+
+  std::optional<DomainId> getBinParentInDomain(DomainId binId,
                                                  Domain parentDomain) const;
 
   size_t getDomainSize(Domain domain) const;

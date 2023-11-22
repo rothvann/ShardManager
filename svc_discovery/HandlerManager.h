@@ -11,27 +11,27 @@
 #include "folly/MapUtil.h"
 #include "server_utils/HandlerManager.h"
 #include "svc_discovery/RequestHandler.h"
-#include "svc_discovery/ServiceConnections.h"
+#include "svc_discovery/BinManager.h"
 
 namespace psychopomp {
-typedef folly::Synchronized<RequestHandler> SyncedRequestHandler;
 
 class HandlerManager
     : public server_utils::HandlerManager<Psychopomp::AsyncService> {
  public:
-  HandlerManager(std::shared_ptr<ServiceConnections> svcConnections);
+  HandlerManager(std::shared_ptr<BinManager> binManager);
 
-  void addHandler(Psychopomp::AsyncService* service,
-                  grpc::ServerCompletionQueue* completionQueue) override;
+  void addHandler() override;
 
   void process(void* handlerTag, bool ok) override;
+
+  bool registerBin(std::string serviceName, std::string binName);
 
   std::shared_ptr<SyncedRequestHandler> getSyncedRequestHandler(void* tag);
 
  private:
   void removeSyncedRequestHandler(void* tag);
 
-  std::shared_ptr<ServiceConnections> svcConnections_;
+  std::shared_ptr<BinManager> binManager_;
   folly::Synchronized<
       std::unordered_map<void*, std::shared_ptr<SyncedRequestHandler>>>
       requestHandlerMap_;

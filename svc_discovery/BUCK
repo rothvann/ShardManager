@@ -1,14 +1,15 @@
 cxx_library(
     name = 'svc_discovery',
     srcs = [
+        'BinManager.cpp',
         'HandlerManager.cpp',
         'RequestHandler.cpp',
-        'ServiceConnections.cpp',
     ],
     exported_headers = [
+        'Bin.h',
+        'BinManager.h',
         'HandlerManager.h',
         'RequestHandler.h',
-        'ServiceConnections.h',
     ],
     exported_deps = ['//external_deps:folly', '//server_utils:server_utils', '//proto:service_discovery_cpp'],
     preferred_linkage = 'static',

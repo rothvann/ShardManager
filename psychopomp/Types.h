@@ -14,6 +14,10 @@ typedef size_t Metric;
 typedef size_t ShardRangeId;
 typedef size_t ReplicaId; 
 
+const DomainId kDefaultBin = 0;
+const DomainId kDefaultDomain = 0;
+const Metric kShardCountMetric = 0;
+
 struct RangeJoinInfo {};
 
 struct RangeSplitInfo {};

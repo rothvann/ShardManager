@@ -86,9 +86,8 @@ class LoadBalancingConstraint : public Constraint {
     if (domain == state_->getBinDomain()) {
       int32_t sum = 0;
       for (auto child : childVector) {
-        bool isFutureChild =
-            checkIsFutureChild(movementMaps, child, domain, domainId);
-        if (isFutureChild) {
+        if (shouldConsiderShard(MovementConsistency::AFTER, movementMaps, child,
+                                domainId)) {
           auto metric = state_->getShardMetric(metric_, child);
           sum += metric;
         }

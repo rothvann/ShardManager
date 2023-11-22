@@ -47,9 +47,9 @@ class AsyncServer {
         void* tag;
         bool ok;
 
+        auto* completionQueue = completionQueues_[i].get();
+        requestHandlerManager_->registerService(&service_, completionQueue);
         while (true) {
-          auto* completionQueue = completionQueues_[i].get();
-          requestHandlerManager_->addHandler(&service_, completionQueue);
 
           bool shutdown = completionQueue->Next(&tag, &ok);
 

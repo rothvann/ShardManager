@@ -3,11 +3,13 @@
 #include <grpcpp/grpcpp.h>
 
 #include <queue>
+#include <folly/Synchronized.h>
 
 #include "ServiceDiscovery.grpc.pb.h"
 #include "ServiceDiscovery.pb.h"
 
 namespace psychopomp {
+class HandlerManager;
 
 struct RequestHandlerTag {
   void* tag;
@@ -21,7 +23,8 @@ class RequestHandler {
   enum class HandlerStatus { ACTIVE, STOPPING, STOPPED };
 
   RequestHandler(Psychopomp::AsyncService* service,
-                 grpc::ServerCompletionQueue* completionQueue);
+                 grpc::ServerCompletionQueue* completionQueue,
+                 HandlerManager* handlerManager);
 
   void process(RequestHandlerTag::Op op, bool ok);
 
@@ -36,6 +39,7 @@ class RequestHandler {
 
   void attemptSendMessage();
 
+  HandlerManager* handlerManager_;
   grpc::ServerContext ctx_;
   std::unique_ptr<grpc::ServerAsyncReaderWriter<ServerMessage, ClientMessage>>
       stream_;
@@ -44,7 +48,12 @@ class RequestHandler {
   std::unordered_map<RequestHandlerTag::Op, OpStatus> opStatusMap_;
   std::vector<std::unique_ptr<RequestHandlerTag>> requestHandlerTags_;
 
+  bool hasAuthenticated;
+
   std::queue<ServerMessage> writeQueue_;
   HandlerStatus status_;
+  ClientMessage message_;
 };
+
+typedef folly::Synchronized<RequestHandler> SyncedRequestHandler;
 }  // namespace psychopomp
