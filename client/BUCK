@@ -1,0 +1,21 @@
+cxx_library(
+    name = 'client',
+    srcs = [
+    ],
+    exported_headers = [
+        'Client.h',
+    ],
+    exported_deps = ['//proto:service_discovery_cpp'],
+    preferred_linkage = 'static',
+    visibility = [
+        'PUBLIC',
+    ],
+)
+
+cxx_binary(
+    name = 'test',
+    srcs = [
+        'TestClient.cpp',
+    ],
+    deps = ['//client:client'],
+)

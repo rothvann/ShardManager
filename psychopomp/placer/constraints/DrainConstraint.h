@@ -4,17 +4,15 @@
 
 namespace psychopomp {
 
-class MetricConstraint : public Constraint {
+class DrainConstraint : public Constraint {
  public:
-  MetricConstraint(std::shared_ptr<State> state,
-                   MovementConsistency consistency, Domain domain,
-                   const std::vector<DomainId>& domainIds, Metric metric,
-                   int32_t capacity, int32_t faultWeight)
+  DrainConstraint(std::shared_ptr<State> state, MovementConsistency consistency,
+                  Domain domain, const std::vector<DomainId>& domainIds,
+                  int32_t faultWeight)
       : Constraint(state),
         consistency_(consistency),
         domain_(domain),
-        metric_(metric),
-        capacity_(capacity),
+        metric_(kShardCountMetric),
         faultWeight_(faultWeight) {
     auto func =
         [&](const AssignmentTree& assignmentTree,
@@ -48,7 +46,8 @@ class MetricConstraint : public Constraint {
       const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
       const MetricsMap& metricMap, const std::vector<DomainId>& changedChildren,
       std::pair<Domain, DomainId> node) {
-    auto val = sumOperator(state_, metric_, assignmentTree, movementMaps, metricMap,
+    auto val =
+        shardCountOperator(state_, assignmentTree, movementMaps, metricMap,
                            changedChildren, node, consistency_);
     updateWeightIfPossible(node, val);
     return val;
@@ -58,10 +57,7 @@ class MetricConstraint : public Constraint {
     if (node.first == domain_) {
       int64_t prevWeight = domainFaultMap_.get(node.second).value_or(0);
 
-      auto currentWeight = 0;
-      if (val > capacity_) {
-        currentWeight = (val - capacity_) * faultWeight_;
-      }
+      auto currentWeight = val * faultWeight_;
 
       domainFaultMap_.set(true /* isCanary */, currentWeight, node.second);
 
@@ -83,7 +79,6 @@ class MetricConstraint : public Constraint {
   MovementConsistency consistency_;
   Domain domain_;
   Metric metric_;
-  int32_t capacity_;
   int32_t faultWeight_;
 
   std::shared_ptr<ExpressionTree> expressionTree_;

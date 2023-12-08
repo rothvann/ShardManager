@@ -3,6 +3,7 @@
 #include "gtest/gtest.h"
 #include "psychopomp/placer/IterativeLocalSearch.h"
 #include "psychopomp/placer/constraints/CapacityConstraint.h"
+#include "psychopomp/placer/constraints/DrainConstraint.h"
 #include "psychopomp/placer/constraints/LoadBalancingConstraint.h"
 #include "psychopomp/placer/simulation/RandomTreeGenerator.h"
 #include "psychopomp/placer/simulation/ShardGenerator.h"
@@ -32,10 +33,10 @@ TEST(TestTree, First) {
 
   state->addMetric(0, metric);
   std::vector<std::shared_ptr<Constraint>> constraints;
-  std::shared_ptr<MetricConstraint> freeConstraint =
-      std::make_shared<MetricConstraint>(state, MovementConsistency::AFTER,
+  std::shared_ptr<DrainConstraint> freeConstraint =
+      std::make_shared<DrainConstraint>(state, MovementConsistency::AFTER,
                                          state->getBinDomain(),
-                                         std::vector<DomainId>{0}, 0, 0, 10);
+                                         std::vector<DomainId>{0}, 10);
 
   std::vector<DomainId> domainIds;
   for (size_t i = 1; i <= numBins; i++) {

@@ -6,31 +6,31 @@ RequestHandler::RequestHandler(Psychopomp::AsyncService* service,
                                grpc::ServerCompletionQueue* completionQueue,
                                HandlerManager* handlerManager)
     : handlerManager_(handlerManager) {
-  requestHandlerTags_.emplace_back(new RequestHandlerTag{
-      reinterpret_cast<void*>(this), RequestHandlerTag::Op::CONNECT});
-  requestHandlerTags_.emplace_back(new RequestHandlerTag{
-      reinterpret_cast<void*>(this), RequestHandlerTag::Op::READ});
-  requestHandlerTags_.emplace_back(new RequestHandlerTag{
-      reinterpret_cast<void*>(this), RequestHandlerTag::Op::WRITE});
-  requestHandlerTags_.emplace_back(new RequestHandlerTag{
-      reinterpret_cast<void*>(this), RequestHandlerTag::Op::FINISH});
+  handlerTags_.emplace_back(
+      new HandlerTag{reinterpret_cast<void*>(this), HandlerTag::Op::CONNECT});
+  handlerTags_.emplace_back(
+      new HandlerTag{reinterpret_cast<void*>(this), HandlerTag::Op::READ});
+  handlerTags_.emplace_back(
+      new HandlerTag{reinterpret_cast<void*>(this), HandlerTag::Op::WRITE});
+  handlerTags_.emplace_back(
+      new HandlerTag{reinterpret_cast<void*>(this), HandlerTag::Op::FINISH});
 
   stream_.reset(
       new grpc::ServerAsyncReaderWriter<ServerMessage, ClientMessage>(&ctx_));
-  service->RequestregisterStream(&ctx_, stream_.get(), completionQueue,
+  service->RequestRegisterStream(&ctx_, stream_.get(), completionQueue,
                                  completionQueue,
-                                 getOpTag(RequestHandlerTag::Op::CONNECT));
+                                 getOpTag(HandlerTag::Op::CONNECT));
 }
 
-void RequestHandler::process(RequestHandlerTag::Op op, bool ok) {
+void RequestHandler::process(HandlerTag::Op op, bool ok) {
   switch (op) {
-    case RequestHandlerTag::Op::CONNECT:
+    case HandlerTag::Op::CONNECT:
       std::cout << "Client connected" << std::endl;
 
       // Wait for read
-      stream_->Read(&message_, getOpTag(RequestHandlerTag::Op::READ));
+      stream_->Read(&message_, getOpTag(HandlerTag::Op::READ));
       break;
-    case RequestHandlerTag::Op::READ: {
+    case HandlerTag::Op::READ: {
       // Process read
       std::cout << "Read message from stream" << std::endl;
 
@@ -43,20 +43,19 @@ void RequestHandler::process(RequestHandlerTag::Op op, bool ok) {
         break;
       }
       // Wait for next read
-      stream_->Read(&message_, getOpTag(RequestHandlerTag::Op::READ));
+      stream_->Read(&message_, getOpTag(HandlerTag::Op::READ));
       break;
     }
-    case RequestHandlerTag::Op::WRITE:
+    case HandlerTag::Op::WRITE:
       // Check if write finished or channel is dropped
       if (!ok) {
         break;
       }
-      opStatusMap_[RequestHandlerTag::Op::WRITE] = OpStatus::INACTIVE;
+      opStatusMap_[HandlerTag::Op::WRITE] = OpStatus::INACTIVE;
       writeQueue_.pop();
 
       if (status_ == HandlerStatus::STOPPING && writeQueue_.empty()) {
-        stream_->Finish(grpc::Status::OK,
-                        getOpTag(RequestHandlerTag::Op::FINISH));
+        stream_->Finish(grpc::Status::OK, getOpTag(HandlerTag::Op::FINISH));
         break;
       }
 
@@ -66,7 +65,7 @@ void RequestHandler::process(RequestHandlerTag::Op op, bool ok) {
       // Check next write in queue
       attemptSendMessage();
       break;
-    case RequestHandlerTag::Op::FINISH:
+    case HandlerTag::Op::FINISH:
       /*
       Logging etc
       */
@@ -89,11 +88,11 @@ void RequestHandler::stop() {
   if (!writeQueue_.empty()) {
     return;
   }
-  stream_->Finish(grpc::Status::OK, getOpTag(RequestHandlerTag::Op::FINISH));
+  stream_->Finish(grpc::Status::OK, getOpTag(HandlerTag::Op::FINISH));
 }
 
-void* RequestHandler::getOpTag(RequestHandlerTag::Op op) const {
-  auto& ptr = requestHandlerTags_[static_cast<int>(op)];
+void* RequestHandler::getOpTag(HandlerTag::Op op) const {
+  auto& ptr = handlerTags_[static_cast<int>(op)];
   return reinterpret_cast<void*>(ptr.get());
 }
 
@@ -101,14 +100,14 @@ void RequestHandler::attemptSendMessage() {
   if (status_ == HandlerStatus::STOPPED) {
     return;
   }
-  if (opStatusMap_[RequestHandlerTag::Op::WRITE] != OpStatus::INACTIVE) {
+  if (opStatusMap_[HandlerTag::Op::WRITE] != OpStatus::INACTIVE) {
     return;
   }
   if (writeQueue_.empty()) {
     return;
   }
   auto message = writeQueue_.front();
-  stream_->Write(message, getOpTag(RequestHandlerTag::Op::WRITE));
+  stream_->Write(message, getOpTag(HandlerTag::Op::WRITE));
 }
 
 bool RequestHandler::hasStopped() const {

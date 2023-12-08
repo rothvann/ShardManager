@@ -1,14 +1,34 @@
 #pragma once
 
-#include "svc_discovery/HandlerManager.h"
+#include <folly/Synchronized.h>
+
+#include "svc_discovery/RequestHandler.h"
 
 namespace psychopomp {
-    class Bin {
-        Bin(std::string binName);
+class Bin {
+ public:
+  Bin(std::string binName, std::shared_ptr<SyncedRequestHandler> requestHandler)
+      : binName_(binName), requestHandler_(requestHandler) {}
 
-        void updateState();
+  std::string getName() {
+    return binName_;
+  }
 
-        void registerRequestHandler();
-    };
+  BinState getState() { return state_.copy(); }
 
-}
+  void updateState(BinState binState) {
+    auto state = state_.wlock();
+    (*state) = binState;
+  }
+
+  void sendMessage(ServerMessage msg) {
+    auto requestHandler = requestHandler_->wlock();
+    requestHandler->sendMessage(msg);
+  }
+
+ private:
+  std::string binName_;
+  std::shared_ptr<SyncedRequestHandler> requestHandler_;
+  folly::Synchronized<BinState> state_;
+};
+}  // namespace psychopomp

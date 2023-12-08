@@ -5,7 +5,7 @@
 
 namespace psychopomp {
 ExpressionTree::ExpressionTree(
-    std::shared_ptr<State> state, Metric metric, Domain domain,
+    std::shared_ptr<State> state, Domain domain,
     const std::vector<DomainId>& treeParents,
     std::function<int32_t(const AssignmentTree&,
                           const std::vector<std::shared_ptr<MovementMap>>&,
@@ -13,7 +13,6 @@ ExpressionTree::ExpressionTree(
                           std::pair<Domain, DomainId>)>
         calcMetricFunc)
     : state_(state),
-      metric_(metric),
       assignmentTree_(std::make_shared<AssignmentTree>(state_->getShardDomain(),
                                                        state_->getBinDomain())),
       calcMetricFunc_(calcMetricFunc) {
@@ -81,9 +80,6 @@ void ExpressionTree::initializeMetricState() {
                      std::unordered_map<DomainId, std::vector<DomainId>>>
       toUpdate;
   for (auto shardId : shardIds) {
-    metricsMap_.set(false /* is Canary */,
-                    state_->getShardMetric(metric_, shardId), shardDomain,
-                    shardId);
     auto parents = assignmentTree_->getParents(
         state_->getShardDomain(), shardId, {state_->getMovementMap()});
     for (auto [domain, domainId] : parents) {

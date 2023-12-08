@@ -3,6 +3,7 @@
 #include "folly/MapUtil.h"
 
 namespace psychopomp {
+
 HandlerManager::HandlerManager(std::shared_ptr<BinManager> binManager)
     : binManager_(binManager) {}
 
@@ -16,22 +17,22 @@ void HandlerManager::addHandler() {
   }
 }
 
-void HandlerManager::process(void* handlerTag, bool ok) {
-  RequestHandlerTag* requestHandlerTag =
-      reinterpret_cast<RequestHandlerTag*>(handlerTag);
+void HandlerManager::process(void* tag, bool ok) {
+  HandlerTag* handlerTag =
+      reinterpret_cast<HandlerTag*>(tag);
   std::shared_ptr<SyncedRequestHandler> requestHandler =
-      getSyncedRequestHandler(requestHandlerTag->tag);
+      getSyncedRequestHandler(handlerTag->tag);
   if (!requestHandler) {
     // log error;
     return;
   }
 
   auto requestHandlerPtr = requestHandler->wlock();
-  requestHandlerPtr->process(requestHandlerTag->op, ok);
+  requestHandlerPtr->process(handlerTag->op, ok);
   if (requestHandlerPtr->hasStopped()) {
-    removeSyncedRequestHandler(requestHandlerTag->tag);
+    removeSyncedRequestHandler(handlerTag->tag);
   }
-  if(requestHandlerTag->op == RequestHandlerTag::Op::CONNECT) {
+  if(handlerTag->op == HandlerTag::Op::CONNECT) {
     addHandler();
   }
 }

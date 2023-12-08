@@ -39,10 +39,10 @@ class LoadBalancingConstraint : public Constraint {
                        });
     };
     minExpressionTree_ =
-        std::make_shared<ExpressionTree>(state_, metric_, loadBalancingDomain_,
+        std::make_shared<ExpressionTree>(state_, loadBalancingDomain_,
                                          std::vector<DomainId>{0}, minFunc);
     maxExpressionTree_ =
-        std::make_shared<ExpressionTree>(state_, metric_, loadBalancingDomain_,
+        std::make_shared<ExpressionTree>(state_, loadBalancingDomain_,
                                          std::vector<DomainId>{0}, maxFunc);
     updateWeights();
     commit();

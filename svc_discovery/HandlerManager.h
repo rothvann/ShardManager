@@ -10,19 +10,19 @@
 #include "ServiceDiscovery.grpc.pb.h"
 #include "folly/MapUtil.h"
 #include "server_utils/HandlerManager.h"
-#include "svc_discovery/RequestHandler.h"
 #include "svc_discovery/BinManager.h"
+#include "svc_discovery/RequestHandler.h"
 
 namespace psychopomp {
-
 class HandlerManager
     : public server_utils::HandlerManager<Psychopomp::AsyncService> {
  public:
+
   HandlerManager(std::shared_ptr<BinManager> binManager);
 
   void addHandler() override;
 
-  void process(void* handlerTag, bool ok) override;
+  void process(void* tag, bool ok) override;
 
   bool registerBin(std::string serviceName, std::string binName);
 

@@ -11,6 +11,12 @@ message ShardRange {
     int64 range_end = 2;
 }
 
+enum BinStatus {
+    BIN_STATUS_UNKNOWN = 0;
+    BIN_STATUS_HEALTHY = 1;
+    BIN_STATUS_DRAIN = 2;
+}
+
 enum ShardRangeStatus {
     SHARD_RANGE_STATUS_UNKNOWN = 0;
     SHARD_RANGE_STATUS_ADDED = 1;
@@ -18,6 +24,7 @@ enum ShardRangeStatus {
     SHARD_RANGE_STATUS_PENDING_DROPPED = 3;
     SHARD_RANGE_STATUS_FORWARDING = 4; 
     SHARD_RANGE_STATUS_PENDING_FORWARDING = 5; 
+    SHARD_RANGE_STATUS_DROPPED = 6; 
 }
 
 message ShardRangeInfo {
@@ -32,18 +39,20 @@ message ShardUpdateRequest {
     repeated string next_bins = 4;
 }
 
+message ShardUpdateResponse {
+    repeated ShardRange ranges = 1;
+    repeated ShardRangeStatus statuses = 2;
+}
+
 /* Empty */
 message BinStateRequest {
 }
 
 message BinState {
     repeated ShardRangeInfo shard_range_info = 1;
+    BinStatus status = 2;
 }
  
-/* Empty */
-message RequestDrain {
-}
-
 /* Empty */
 message HeartBeatResponse {
 }
@@ -65,18 +74,17 @@ message ConnectionResponse {
 
 message ServerMessage {
     oneof message {
-        HeartBeatRequest heartbeat_request = 1;
+        ConnectionResponse connection_response = 1;
         ShardUpdateRequest shard_update_request = 2;
-        ConnectionResponse connection_response = 3;
-        BinStateRequest bin_state_request = 4;
+        BinStateRequest bin_state_request = 3;
     }
 }
 
 message ClientMessage {
     oneof message {
-        HeartBeatResponse heartbeat = 1;
-        BinState bin_state = 2;
-        ConnectionRequest connection_request = 3;
+        ConnectionRequest connection_request = 1;
+        ShardUpdateResponse shard_update_response = 2;
+        BinState bin_state = 3;
     }
 }
 
@@ -84,5 +92,5 @@ message ClientMessage {
 Service Declarations
 */
 service Psychopomp {
-    rpc registerStream(stream ClientMessage) returns (stream ServerMessage);
+    rpc RegisterStream(stream ClientMessage) returns (stream ServerMessage);
 }

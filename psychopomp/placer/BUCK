@@ -32,6 +32,8 @@ cxx_library(
     'constraints/CapacityConstraint.h',
     'constraints/Constraint.h',
     'constraints/ConstraintUtils.h',
+    'constraints/DrainConstraint.h',
+    'constraints/ExclusionConstraint.h',
     'constraints/LoadBalancingConstraint.h',
   ],
   exported_deps = [

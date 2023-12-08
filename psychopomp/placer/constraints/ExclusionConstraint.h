@@ -25,7 +25,7 @@ class ExclusionConstraint : public Constraint {
       return addBinCount(assignmentTree, movementMaps, node);
     };
     expressionTree_ = std::make_shared<ExpressionTree>(
-        state_, kShardCountMetric, state->getShardDomain(), shardIds, func);
+        state_, state->getShardDomain(), shardIds, func);
   }
 
  private:

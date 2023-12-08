@@ -106,4 +106,33 @@ int32_t sumOperator(
   return val;
 };
 
+
+int32_t shardCountOperator(
+    std::shared_ptr<State> state,
+    const AssignmentTree& assignmentTree,
+    const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
+    const MetricsMap& metricMap, const std::vector<DomainId>& changedChildren,
+    std::pair<Domain, DomainId> node, MovementConsistency consistency) {
+  auto& domain = node.first;
+  auto& domainId = node.second;
+  auto childDomain = assignmentTree.getChildDomain(domain);
+  int64_t val = metricMap.get(domain, domainId).value_or(0);
+
+  for (auto child : changedChildren) {
+    bool isFutureChild = true;
+    if (domain == state->getBinDomain()) {
+      if (!shouldConsiderShard(consistency, movementMaps, child, domainId)) {
+        isFutureChild = false;
+      }
+    }
+
+    if (isFutureChild) {
+      val += 1;
+    } else {
+      val -= 1;
+    }
+  }
+  return val;
+};
+
 }  // namespace psychopomp

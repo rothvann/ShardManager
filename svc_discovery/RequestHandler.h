@@ -1,9 +1,9 @@
 #pragma once
 
+#include <folly/Synchronized.h>
 #include <grpcpp/grpcpp.h>
 
 #include <queue>
-#include <folly/Synchronized.h>
 
 #include "ServiceDiscovery.grpc.pb.h"
 #include "ServiceDiscovery.pb.h"
@@ -11,9 +11,15 @@
 namespace psychopomp {
 class HandlerManager;
 
-struct RequestHandlerTag {
+struct HandlerTag {
   void* tag;
-  enum class Op { CONNECT = 0, READ = 1, WRITE = 2, FINISH = 3 };
+  enum class Op {
+    CONNECT = 0,
+    READ = 1,
+    WRITE = 2,
+    FINISH = 3,
+    CANCELLED = 4,
+  };
   Op op;
 };
 
@@ -26,7 +32,7 @@ class RequestHandler {
                  grpc::ServerCompletionQueue* completionQueue,
                  HandlerManager* handlerManager);
 
-  void process(RequestHandlerTag::Op op, bool ok);
+  void process(HandlerTag::Op op, bool ok);
 
   bool sendMessage(const ServerMessage& message);
 
@@ -35,7 +41,7 @@ class RequestHandler {
   bool hasStopped() const;
 
  private:
-  void* getOpTag(RequestHandlerTag::Op op) const;
+  void* getOpTag(HandlerTag::Op op) const;
 
   void attemptSendMessage();
 
@@ -45,8 +51,8 @@ class RequestHandler {
       stream_;
 
   std::queue<ServerMessage> msgQueue_;
-  std::unordered_map<RequestHandlerTag::Op, OpStatus> opStatusMap_;
-  std::vector<std::unique_ptr<RequestHandlerTag>> requestHandlerTags_;
+  std::unordered_map<HandlerTag::Op, OpStatus> opStatusMap_;
+  std::vector<std::unique_ptr<HandlerTag>> handlerTags_;
 
   bool hasAuthenticated;
 
