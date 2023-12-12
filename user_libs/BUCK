@@ -17,5 +17,5 @@ cxx_binary(
     srcs = [
         'TestClient.cpp',
     ],
-    deps = ['//client:client'],
+    deps = ['//user_libs:client'],
 )

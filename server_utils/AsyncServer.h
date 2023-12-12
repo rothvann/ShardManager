@@ -51,7 +51,7 @@ class AsyncServer {
         requestHandlerManager_->registerService(&service_, completionQueue);
         while (true) {
 
-          bool shutdown = completionQueue->Next(&tag, &ok);
+          bool shutdown = !completionQueue->Next(&tag, &ok);
 
           if (shutdown) {
             std::cerr << "Shutdown in thread" << std::endl;

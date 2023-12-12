@@ -40,6 +40,7 @@ void RequestHandler::process(HandlerTag::Op op, bool ok) {
 
       // Check if should wait for next read
       if (!ok) {
+        std::cout << "Unsuccessful read" << std::endl;
         break;
       }
       // Wait for next read
