@@ -4,9 +4,9 @@ namespace psychopomp {
 
 void BinManager::add(std::shared_ptr<SyncedRequestHandler> requestHandler,
                      std::string serviceName, std::string binName) {
-  Bin bin(binName, requestHandler);
+  auto bin = std::make_shared<Bin>(binName, requestHandler);
   auto connectionsMap = serviceConnectionsMap_.wlock();
-  (*connectionsMap)[serviceName].emplace(binName, std::move(bin));
+  (*connectionsMap)[serviceName].emplace(binName, bin);
 }
 
 void BinManager::remove(std::string serviceName, std::string binName) {
@@ -17,7 +17,7 @@ void BinManager::remove(std::string serviceName, std::string binName) {
   }
 }
 
-std::unordered_map<std::string, std::unordered_map<std::string, Bin>>
+std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<Bin>>>
 BinManager::getServices() {
   return serviceConnectionsMap_.copy();
 }

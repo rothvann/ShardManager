@@ -5,7 +5,7 @@ cxx_library(
     exported_headers = [
         'Client.h',
     ],
-    exported_deps = ['//proto:service_discovery_cpp'],
+    exported_deps = ['//proto:service_discovery_cpp', '//server_utils:request_handler'],
     preferred_linkage = 'static',
     visibility = [
         'PUBLIC',

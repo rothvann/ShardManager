@@ -4,6 +4,8 @@
 
 namespace psychopomp {
 
+using server_utils::Operation;
+
 HandlerManager::HandlerManager(std::shared_ptr<BinManager> binManager)
     : binManager_(binManager) {}
 
@@ -29,15 +31,9 @@ void HandlerManager::process(void* tag, bool ok) {
 
   auto requestHandlerPtr = requestHandler->wlock();
   requestHandlerPtr->process(handlerTag->op, ok);
-  if (requestHandlerPtr->hasStopped()) {
-    removeSyncedRequestHandler(handlerTag->tag);
-  }
-  if(handlerTag->op == HandlerTag::Op::CONNECT) {
-    addHandler();
-  }
 }
 
-bool HandlerManager::registerBin(std::string serviceName, std::string binName) {
+void HandlerManager::registerBin(std::string serviceName, std::string binName) {
   
 }
 

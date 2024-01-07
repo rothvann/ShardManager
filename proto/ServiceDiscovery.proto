@@ -35,11 +35,14 @@ message ShardRangeInfo {
 message ShardUpdateRequest {
     repeated ShardRange assigned_ranges = 1;
     repeated ShardRange unassigned_ranges = 2;
-    repeated ShardRange forwarded_ranges = 3;
-    repeated string next_bins = 4;
 }
 
-message ShardUpdateResponse {
+message ShardForwardRequest {
+    repeated ShardRange forwarded_ranges = 1;
+    repeated string next_bins = 2;
+}
+
+message ShardStatusUpdateResponse {
     repeated ShardRange ranges = 1;
     repeated ShardRangeStatus statuses = 2;
 }
@@ -75,15 +78,16 @@ message ConnectionResponse {
 message ServerMessage {
     oneof message {
         ConnectionResponse connection_response = 1;
-        ShardUpdateRequest shard_update_request = 2;
-        BinStateRequest bin_state_request = 3;
+        BinStateRequest bin_state_request = 2;
+        ShardUpdateRequest shard_update_request = 3;
+        ShardForwardRequest shard_forward_request = 4;
     }
 }
 
 message ClientMessage {
     oneof message {
         ConnectionRequest connection_request = 1;
-        ShardUpdateResponse shard_update_response = 2;
+        ShardStatusUpdateResponse shard_status_update_response = 2;
         BinState bin_state = 3;
     }
 }

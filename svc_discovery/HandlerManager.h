@@ -24,13 +24,12 @@ class HandlerManager
 
   void process(void* tag, bool ok) override;
 
-  bool registerBin(std::string serviceName, std::string binName);
+  void registerBin(std::string serviceName, std::string binName);
 
   std::shared_ptr<SyncedRequestHandler> getSyncedRequestHandler(void* tag);
-
- private:
   void removeSyncedRequestHandler(void* tag);
 
+ private:
   std::shared_ptr<BinManager> binManager_;
   folly::Synchronized<
       std::unordered_map<void*, std::shared_ptr<SyncedRequestHandler>>>

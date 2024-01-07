@@ -6,7 +6,20 @@ cxx_library(
         'AsyncServer.h',
         'HandlerManager.h',
     ],
-    exported_deps = ['//external_deps:folly', '//external_deps:grpc',],
+    exported_deps = ['//external_deps:folly', '//external_deps:grpc', '//server_utils:request_handler'],
+    visibility = [
+        'PUBLIC',
+    ],
+)
+
+cxx_library(
+    name = 'request_handler',
+    srcs = [
+    ],
+    exported_headers = [
+        'RequestHandler.h',
+    ],
+    exported_deps = [],
     visibility = [
         'PUBLIC',
     ],

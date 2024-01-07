@@ -17,12 +17,13 @@ class BinManager {
            std::string serviceName, std::string binName);
   void remove(std::string serviceName, std::string binName);
 
-  std::unordered_map<std::string, std::unordered_map<std::string, Bin>>
+  std::unordered_map<std::string,
+                     std::unordered_map<std::string, std::shared_ptr<Bin>>>
   getServices();
 
  private:
-  folly::Synchronized<
-      std::unordered_map<std::string, std::unordered_map<std::string, Bin>>>
+  folly::Synchronized<std::unordered_map<
+      std::string, std::unordered_map<std::string, std::shared_ptr<Bin>>>>
       serviceConnectionsMap_;
 };
 }  // namespace psychopomp

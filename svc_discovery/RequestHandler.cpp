@@ -1,114 +1,94 @@
 #include "svc_discovery/RequestHandler.h"
 
+#include "svc_discovery/HandlerManager.h"
+
 namespace psychopomp {
+
+using server_utils::Operation;
 
 RequestHandler::RequestHandler(Psychopomp::AsyncService* service,
                                grpc::ServerCompletionQueue* completionQueue,
                                HandlerManager* handlerManager)
     : handlerManager_(handlerManager) {
   handlerTags_.emplace_back(
-      new HandlerTag{reinterpret_cast<void*>(this), HandlerTag::Op::CONNECT});
+      new HandlerTag{reinterpret_cast<void*>(this), Operation::CONNECT});
   handlerTags_.emplace_back(
-      new HandlerTag{reinterpret_cast<void*>(this), HandlerTag::Op::READ});
+      new HandlerTag{reinterpret_cast<void*>(this), Operation::READ});
   handlerTags_.emplace_back(
-      new HandlerTag{reinterpret_cast<void*>(this), HandlerTag::Op::WRITE});
+      new HandlerTag{reinterpret_cast<void*>(this), Operation::WRITE});
   handlerTags_.emplace_back(
-      new HandlerTag{reinterpret_cast<void*>(this), HandlerTag::Op::FINISH});
+      new HandlerTag{reinterpret_cast<void*>(this), Operation::FINISH});
 
   stream_.reset(
       new grpc::ServerAsyncReaderWriter<ServerMessage, ClientMessage>(&ctx_));
   service->RequestRegisterStream(&ctx_, stream_.get(), completionQueue,
-                                 completionQueue,
-                                 getOpTag(HandlerTag::Op::CONNECT));
+                                 completionQueue, getOpTag(Operation::CONNECT));
 }
 
-void RequestHandler::process(HandlerTag::Op op, bool ok) {
-  switch (op) {
-    case HandlerTag::Op::CONNECT:
-      std::cout << "Client connected" << std::endl;
-
-      // Wait for read
-      stream_->Read(&message_, getOpTag(HandlerTag::Op::READ));
-      break;
-    case HandlerTag::Op::READ: {
-      // Process read
-      std::cout << "Read message from stream" << std::endl;
-
-      if (!hasAuthenticated) {
-        /* authenticate */
-      }
-
-      // Check if should wait for next read
-      if (!ok) {
-        std::cout << "Unsuccessful read" << std::endl;
-        break;
-      }
-      // Wait for next read
-      stream_->Read(&message_, getOpTag(HandlerTag::Op::READ));
-      break;
-    }
-    case HandlerTag::Op::WRITE:
-      // Check if write finished or channel is dropped
-      if (!ok) {
-        break;
-      }
-      opStatusMap_[HandlerTag::Op::WRITE] = OpStatus::INACTIVE;
-      writeQueue_.pop();
-
-      if (status_ == HandlerStatus::STOPPING && writeQueue_.empty()) {
-        stream_->Finish(grpc::Status::OK, getOpTag(HandlerTag::Op::FINISH));
-        break;
-      }
-
-      // Process finished write
-      std::cout << "Wrote message to stream" << std::endl;
-
-      // Check next write in queue
-      attemptSendMessage();
-      break;
-    case HandlerTag::Op::FINISH:
-      /*
-      Logging etc
-      */
-      status_ = HandlerStatus::STOPPED;
-      break;
-  }
-}
-
-bool RequestHandler::sendMessage(const ServerMessage& message) {
-  if (status_ == HandlerStatus::STOPPING || status_ == HandlerStatus::STOPPED) {
-    return false;
-  }
-  writeQueue_.emplace(message);
-  attemptSendMessage();
-  return true;
-}
-
-void RequestHandler::stop() {
-  status_ = HandlerStatus::STOPPING;
-  if (!writeQueue_.empty()) {
+void RequestHandler::handleConnect(bool ok) {
+  if (!ok) {
     return;
   }
-  stream_->Finish(grpc::Status::OK, getOpTag(HandlerTag::Op::FINISH));
-}
+  std::cout << "Client connected" << std::endl;
+  handlerManager_->addHandler();
+  // Wait for read
+  readFromStream();
+};
 
-void* RequestHandler::getOpTag(HandlerTag::Op op) const {
+void RequestHandler::handleRead(bool ok, bool& shouldAttemptNext) {
+  // Process read
+  std::cout << "Read message from stream" << std::endl;
+
+  // Failed read from client disconnected etc
+  // Should close handler after
+  if (!ok) {
+    std::cout << "Unsuccessful read" << std::endl;
+    stop();
+    return;
+  }
+
+  if (!hasAuthenticated) {
+    /* authenticate */
+  }
+
+  shouldAttemptNext = true;
+};
+
+void RequestHandler::handleWrite(bool ok, bool& shouldAttemptNext) {
+  // Check if write finished or channel is dropped
+  if (!ok || status_ == HandlerStatus::STOPPED) {
+    return;
+  }
+
+  shouldAttemptNext = true;
+};
+
+void RequestHandler::handleFinish(bool ok) {
+  /*
+  Logging etc
+  */
+
+  std::cout << "Finishing" << std::endl;
+  handlerManager_->removeSyncedRequestHandler(this);
+};
+
+void RequestHandler::readFromStream() {
+  stream_->Read(&message_, getOpTag(Operation::READ));
+};
+
+void RequestHandler::writeToStream(const ServerMessage& msg){
+
+};
+
+void* RequestHandler::getOpTag(Operation op) const {
   auto& ptr = handlerTags_[static_cast<int>(op)];
   return reinterpret_cast<void*>(ptr.get());
 }
 
-void RequestHandler::attemptSendMessage() {
-  if (status_ == HandlerStatus::STOPPED) {
-    return;
-  }
-  if (opStatusMap_[HandlerTag::Op::WRITE] != OpStatus::INACTIVE) {
-    return;
-  }
-  if (writeQueue_.empty()) {
-    return;
-  }
-  auto message = writeQueue_.front();
-  stream_->Write(message, getOpTag(HandlerTag::Op::WRITE));
+void RequestHandler::stop() {
+  std::cout << "Stopping" << std::endl;
+  status_ = HandlerStatus::STOPPED;
+  stream_->Finish(grpc::Status::OK, getOpTag(Operation::FINISH));
 }
 
 bool RequestHandler::hasStopped() const {

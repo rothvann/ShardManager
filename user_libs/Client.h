@@ -3,22 +3,47 @@
 #include <grpc++/grpc++.h>
 
 #include <iostream>
+#include <map>
 #include <queue>
 #include <thread>
-#include <unordered_map>
 #include <vector>
 
 #include "ServiceDiscovery.grpc.pb.h"
 #include "ServiceDiscovery.pb.h"
+#include "server_utils/RequestHandler.h"
+
+namespace {
+template <typename T>
+std::vector<T> copyRepeatedField(
+    const google::protobuf::RepeatedPtrField<T>& field) {
+  return std::vector<T>(field.begin(), field.end());
+}
+}  // namespace
 
 namespace Camfer {
-class Client {
+
+using server_utils::Operation;
+
+class Client : server_utils::RequestHandler<psychopomp::ClientMessage,
+                                            psychopomp::ServerMessage> {
  public:
   Client(std::string serviceName, std::string serviceKey)
-      : serviceName_(serviceName), serviceKey_(serviceKey) {
-  }
+      : serviceName_(serviceName), serviceKey_(serviceKey) {}
 
-  ~Client() { cq_.Shutdown(); }
+  ~Client() {
+    if (context_) {
+      context_->TryCancel();
+    }
+    if (stream_) {
+      grpc::Status* status;
+      stream_->Finish(status, getOpTag(Operation::FINISH));
+    }
+    cq_.Shutdown();
+    std::lock_guard<std::mutex> lockGuard(threadStateLock_);
+    for (auto [id, thread] : threads_) {
+      thread->join();
+    }
+  }
 
   void start() {
     auto ioThread = std::make_shared<std::thread>([&]() {
@@ -39,19 +64,7 @@ class Client {
     return true;
   };
 
-  void write(psychopomp::ClientMessage msg) {
-    addToWriteQueue(msg);
-    attemptWrite();
-  }
-
  private:
-  enum class Operation {
-    CONNECT = 0,
-    READ = 1,
-    WRITE = 2,
-    FINISH = 3,
-  };
-
   void connect() {
     // TODO: Get target from relay service
     std::this_thread::sleep_until(lastConnectionAttempt_ +
@@ -69,7 +82,7 @@ class Client {
     stub_ = psychopomp::Psychopomp::NewStub(channel_);
     context_ = std::make_unique<grpc::ClientContext>();
     stream_ = stub_->AsyncRegisterStream(
-        context_.get(), &cq_, reinterpret_cast<void*>(Operation::CONNECT));
+        context_.get(), &cq_, getOpTag(Operation::CONNECT));
   }
 
   void runIoLoop() {
@@ -78,88 +91,163 @@ class Client {
     while (true) {
       bool shutdown = !cq_.Next(&tag, &ok);
       if (shutdown) {
+        std::cout << "Shutting down" << std::endl;
         break;
       }
 
       std::cout << "Processing tag" << std::endl;
-      process(tag, ok);
+      process(Operation(reinterpret_cast<size_t>(tag)), ok);
     }
   }
 
-  void process(void* tag, bool ok) {
-    auto op = Operation(reinterpret_cast<size_t>(tag));
-    switch (op) {
-      case Operation::CONNECT: {
-        if (!ok) {
-          std::cout << "Not connected" << std::endl;
-          std::this_thread::sleep_for(std::chrono::seconds(5));
-          connect();
-          break;
-        }
-        std::cout << "Connected" << std::endl;
-        isConnected_ = true;
+  virtual void handleConnect(bool ok) override {
+    if (!ok) {
+      std::cout << "Not connected" << std::endl;
+      std::this_thread::sleep_for(std::chrono::seconds(5));
+      connect();
+      return;
+    }
+    std::cout << "Connected" << std::endl;
+    setConnectedState(true);
+    
+    attemptRead();
+    sendAuthMessage();
+  };
 
-        stream_->Read(&message_, reinterpret_cast<void*>(Operation::READ));
+  virtual void handleRead(bool ok, bool& shouldAttemptNext) override {
+    std::cout << "Read message" << std::endl;
 
-        sendAuthMessage();
-        break;
+    // Create thread to handle request
+    if (!ok) {
+      std::cout << "Client disconnected" << std::endl;
+      return;
+    }
+    // Process messages for updates that need to occur sequentially
+    processMessageSequentially(message_);
+
+    // Create copy of message_ and process async
+    auto processThread = std::make_shared<std::thread>(
+        [&, message_ = message_]() { processMessageAsync(message_); });
+    threads_.emplace(processThread->get_id(), processThread);
+
+    shouldAttemptNext = true;
+  };
+
+  virtual void handleWrite(bool ok, bool& shouldAttemptNext) override {
+    shouldAttemptNext = ok;
+  };
+
+  virtual void handleFinish(bool ok) override {
+    std::cout << "Client finished" << std::endl;
+    setConnectedState(false);
+  };
+
+  virtual void readFromStream() override {
+    stream_->Read(&message_, getOpTag(Operation::READ));
+  };
+
+  virtual void writeToStream(const psychopomp::ClientMessage& msg) override {
+    stream_->Write(msgQueue_.front(), getOpTag(Operation::WRITE));
+  }
+
+  virtual void* getOpTag(Operation op) const override {
+    return reinterpret_cast<void*>(op);
+  }
+
+  void processMessageSequentially(const psychopomp::ServerMessage& message) {
+    std::cout << "Processing message sync" << std::endl;
+    if (message.has_shard_update_request()) {
+      const auto& shardUpdateRequest = message.shard_update_request();
+      auto unassignedRanges =
+          copyRepeatedField(shardUpdateRequest.unassigned_ranges());
+      setShardStatus(shardRangePendingStatus_, unassignedRanges,
+                     psychopomp::SHARD_RANGE_STATUS_PENDING_DROPPED);
+
+      auto assignedRanges =
+          copyRepeatedField(shardUpdateRequest.assigned_ranges());
+      setShardStatus(shardRangePendingStatus_, assignedRanges,
+                     psychopomp::SHARD_RANGE_STATUS_PENDING_ADDED);
+    } else if (message.has_shard_forward_request()) {
+      const auto& shardForwardRequest = message.shard_forward_request();
+      auto forwardedRanges =
+          copyRepeatedField(shardForwardRequest.forwarded_ranges());
+      setShardStatus(shardRangePendingStatus_, forwardedRanges,
+                     psychopomp::SHARD_RANGE_STATUS_PENDING_FORWARDING);
+    }
+  }
+
+  void processMessageAsync(psychopomp::ServerMessage message) {
+    std::cout << "Processing message async" << std::endl;
+    if (message.has_bin_state_request()) {
+      const auto& binStateRequest = message.bin_state_request();
+
+      // Send back bin state
+
+    } else if (message.has_connection_response()) {
+      const auto& connectionResponse = message.connection_response();
+      // Log response
+      if (connectionResponse.success()) {
+        std::cout << "Connection successful response" << std::endl;
+      } else {
+        std::cout << "Connection rejected" << std::endl;
       }
-      case Operation::READ:
-        std::cout << "Read message" << std::endl;
+    } else if (message.has_shard_update_request()) {
+      const auto& shardUpdateRequest = message.shard_update_request();
 
-        // Create thread to handle request
-        if (!ok) {
-          std::cout << "Unsucessful read" << std::endl;
-          std::cout << "Client disconnected" << std::endl;
-          break;
-        }
-        stream_->Read(&message_, reinterpret_cast<void*>(Operation::READ));
-        break;
-      case Operation::WRITE:
-        finishWrite(ok);
-        if (ok) {
-          attemptWrite();
-        }
-        break;
-      case Operation::FINISH:
-        std::cout << "Client finished" << std::endl;
-        isConnected_ = false;
-        break;
+      auto unassignedRanges =
+          copyRepeatedField(shardUpdateRequest.unassigned_ranges());
+      auto assignedRanges =
+          copyRepeatedField(shardUpdateRequest.assigned_ranges());
+
+      bool success = updateRanges(unassignedRanges, assignedRanges);
+
+      // Update shard statuses
+      if (success) {
+        setShardStatus(shardRangeStatus_, unassignedRanges,
+                       psychopomp::SHARD_RANGE_STATUS_DROPPED);
+        setShardStatus(shardRangeStatus_, assignedRanges,
+                       psychopomp::SHARD_RANGE_STATUS_ADDED);
+      } else {
+        setShardStatus(shardRangePendingStatus_, unassignedRanges,
+                       psychopomp::SHARD_RANGE_STATUS_DROPPED);
+      }
+
+      std::vector<psychopomp::ShardRange> ranges(unassignedRanges);
+      ranges.insert(ranges.end(), assignedRanges.begin(), assignedRanges.end());
+      sendShardStatusUpdate(ranges);
+    } else if (message.has_shard_forward_request()) {
+      const auto& shardForwardRequest = message.shard_forward_request();
+      auto forwardedRanges =
+          copyRepeatedField(shardForwardRequest.forwarded_ranges());
+      std::vector<std::string> nextBins(shardForwardRequest.next_bins().begin(),
+                                        shardForwardRequest.next_bins().end());
+
+      bool success = forwardRanges(forwardedRanges, nextBins);
+
+      // Update shard statuses
+      if (success) {
+        setShardStatus(shardRangeStatus_, forwardedRanges,
+                       psychopomp::SHARD_RANGE_STATUS_FORWARDING);
+      } else {
+        setShardStatus(shardRangePendingStatus_, forwardedRanges,
+                       psychopomp::SHARD_RANGE_STATUS_DROPPED);
+      }
+      sendShardStatusUpdate(forwardedRanges);
     }
   }
 
   void removeDestructThread(std::thread::id id) {
-    auto guard = std::lock_guard<std::mutex>(stateLock_);
+    std::lock_guard<std::mutex> lockGuard(threadStateLock_);
     threads_.erase(id);
   }
 
-  void addToWriteQueue(psychopomp::ClientMessage msg) {
-    auto guard = std::lock_guard<std::mutex>(stateLock_);
-    msgQueue_.push(std::move(msg));
-  }
-
-  void finishWrite(bool ok) {
-    std::cout << "Write finished" << std::endl;
-    auto guard = std::lock_guard<std::mutex>(stateLock_);
-    if (ok && !msgQueue_.empty()) {
-      msgQueue_.pop();
-    }
-    isWriting_ = false;
-  }
-
-  void attemptWrite() {
-    auto guard = std::lock_guard<std::mutex>(stateLock_);
-    std::cout << "Writing next message" << std::endl;
-    if (msgQueue_.empty() || isWriting_) {
-      return;
-    }
-    isWriting_ = true;
-    stream_->Write(msgQueue_.front(),
-                   reinterpret_cast<void*>(Operation::WRITE));
+  bool getConnectedState() {
+    std::lock_guard<std::mutex> lockGuard(stateLock_);
+    return isConnected_;
   }
 
   void setConnectedState(bool isConnected) {
-    auto guard = std::lock_guard<std::mutex>(stateLock_);
+    std::lock_guard<std::mutex> lockGuard(stateLock_);
     isConnected_ = isConnected;
   }
 
@@ -170,13 +258,103 @@ class Client {
     connRequest.set_service_name(serviceName_);
     connRequest.set_service_key(serviceKey_);
     connRequest.set_bin_name("test bin");
+
+    auto currentShardState = getShardStatus();
+    auto& binState = *connRequest.mutable_bin_state();
+    binState.set_status(psychopomp::BIN_STATUS_HEALTHY);
+
+    auto& shardRangeInfos = *binState.mutable_shard_range_info();
+    shardRangeInfos.Reserve(currentShardState.size());
+    for (auto [rangePair, status] : currentShardState) {
+      auto& shardRangeInfo = *shardRangeInfos.Add();
+      shardRangeInfo.mutable_range()->set_range_start(rangePair.first);
+      shardRangeInfo.mutable_range()->set_range_end(rangePair.second);
+      shardRangeInfo.set_status(status);
+    }
+
     write(msg);
   }
 
+  void sendShardStatusUpdate(
+      const std::vector<psychopomp::ShardRange>& ranges) {
+    psychopomp::ClientMessage msg;
+    auto& updateResponse = *msg.mutable_shard_status_update_response();
+    auto statuses = getShardStatus(ranges);
+    auto& shardRanges = *updateResponse.mutable_ranges();
+
+    shardRanges.Reserve(ranges.size());
+    for (const auto& range : ranges) {
+      *shardRanges.Add() = range;
+    }
+
+    auto& shardRangeStatuses = *updateResponse.mutable_statuses();
+    shardRangeStatuses.Reserve(statuses.size());
+    for (const auto& status : statuses) {
+      *shardRangeStatuses.Add() = status;
+    }
+
+    write(msg);
+  }
+
+  std::map<std::pair<int64_t, int64_t>, psychopomp::ShardRangeStatus>
+  getShardStatus() {
+    std::lock_guard<std::mutex> lockGuard(stateLock_);
+    auto mapCopy = shardRangeStatus_;
+    for (const auto& [range, status] : shardRangePendingStatus_) {
+      mapCopy[range] = status;
+    }
+    return mapCopy;
+  }
+
+  std::vector<psychopomp::ShardRangeStatus> getShardStatus(
+      const std::vector<psychopomp::ShardRange>& ranges) {
+    std::vector<psychopomp::ShardRangeStatus> statuses;
+    statuses.reserve(ranges.size());
+
+    std::lock_guard<std::mutex> lockGuard(stateLock_);
+    for (const auto& range : ranges) {
+      auto rangePair = std::make_pair<int64_t, int64_t>(range.range_start(),
+                                                        range.range_end());
+      auto it = shardRangePendingStatus_.find(rangePair);
+      if (it != shardRangePendingStatus_.end()) {
+        statuses.push_back(it->second);
+        continue;
+      }
+
+      it = shardRangeStatus_.find(rangePair);
+      if (it != shardRangeStatus_.end()) {
+        statuses.push_back(it->second);
+        continue;
+      }
+
+      statuses.push_back(psychopomp::SHARD_RANGE_STATUS_DROPPED);
+    }
+
+    return statuses;
+  }
+
+  void setShardStatus(
+      std::map<std::pair<int64_t, int64_t>, psychopomp::ShardRangeStatus>
+          shardRangeStatusMap,
+      const std::vector<psychopomp::ShardRange>& ranges,
+      psychopomp::ShardRangeStatus status) {
+    std::lock_guard<std::mutex> lockGuard(stateLock_);
+    if (status == psychopomp::SHARD_RANGE_STATUS_DROPPED) {
+      for (const auto& range : ranges) {
+        shardRangeStatusMap.erase(std::make_pair<int64_t, int64_t>(
+            range.range_start(), range.range_end()));
+      }
+    } else {
+      for (const auto& range : ranges) {
+        shardRangeStatusMap[std::make_pair<int64_t, int64_t>(
+            range.range_start(), range.range_end())] = status;
+      }
+    }
+  }
+
   // Threading
-  
   // Should be destructed last
-  std::mutex stateLock_;
+  std::mutex threadStateLock_;
   std::unordered_map<std::thread::id, std::shared_ptr<std::thread>> threads_;
 
   // Config
@@ -188,18 +366,17 @@ class Client {
   std::unique_ptr<psychopomp::Psychopomp::Stub> stub_;
   std::unique_ptr<grpc::ClientContext> context_;
   grpc::CompletionQueue cq_;
-
-  // IO
   std::unique_ptr<grpc::ClientAsyncReaderWriter<psychopomp::ClientMessage,
                                                 psychopomp::ServerMessage>>
       stream_;
-  psychopomp::ServerMessage message_;
-  std::queue<psychopomp::ClientMessage> msgQueue_;
 
   // Client logic
+  std::mutex stateLock_;
   std::chrono::time_point<std::chrono::system_clock> lastConnectionAttempt_;
-
+  std::map<std::pair<int64_t, int64_t>, psychopomp::ShardRangeStatus>
+      shardRangeStatus_;
+  std::map<std::pair<int64_t, int64_t>, psychopomp::ShardRangeStatus>
+      shardRangePendingStatus_;
   bool isConnected_;
-  bool isWriting_;
 };
 }  // namespace Camfer

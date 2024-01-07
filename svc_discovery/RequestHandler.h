@@ -7,58 +7,55 @@
 
 #include "ServiceDiscovery.grpc.pb.h"
 #include "ServiceDiscovery.pb.h"
+#include "server_utils/RequestHandler.h"
 
 namespace psychopomp {
 class HandlerManager;
 
 struct HandlerTag {
   void* tag;
-  enum class Op {
-    CONNECT = 0,
-    READ = 1,
-    WRITE = 2,
-    FINISH = 3,
-    CANCELLED = 4,
-  };
-  Op op;
+  server_utils::Operation op;
 };
 
-class RequestHandler {
+class RequestHandler
+    : public server_utils::RequestHandler<ServerMessage, ClientMessage> {
  public:
   enum class OpStatus { INACTIVE, WAITING };
-  enum class HandlerStatus { ACTIVE, STOPPING, STOPPED };
+  enum class HandlerStatus { ACTIVE, STOPPED };
 
   RequestHandler(Psychopomp::AsyncService* service,
                  grpc::ServerCompletionQueue* completionQueue,
                  HandlerManager* handlerManager);
 
-  void process(HandlerTag::Op op, bool ok);
-
   bool sendMessage(const ServerMessage& message);
 
   void stop();
-
   bool hasStopped() const;
 
  private:
-  void* getOpTag(HandlerTag::Op op) const;
+  virtual void handleConnect(bool ok) override;
+  virtual void handleRead(bool ok, bool& shouldAttemptNext) override;
+  virtual void handleWrite(bool ok, bool& shouldAttemptNext) override;
+  virtual void handleFinish(bool ok) override;
+  virtual void readFromStream() override;
+  virtual void writeToStream(const ServerMessage& msg) override;
+  virtual void* getOpTag(server_utils::Operation op) const override;
 
-  void attemptSendMessage();
-
+  // GRPC
   HandlerManager* handlerManager_;
   grpc::ServerContext ctx_;
   std::unique_ptr<grpc::ServerAsyncReaderWriter<ServerMessage, ClientMessage>>
       stream_;
-
-  std::queue<ServerMessage> msgQueue_;
-  std::unordered_map<HandlerTag::Op, OpStatus> opStatusMap_;
   std::vector<std::unique_ptr<HandlerTag>> handlerTags_;
 
-  bool hasAuthenticated;
-
-  std::queue<ServerMessage> writeQueue_;
-  HandlerStatus status_;
+  // IO
   ClientMessage message_;
+  std::queue<ServerMessage> writeQueue_;
+  bool isWriting_;
+
+  // Handling Logic
+  HandlerStatus status_;
+  bool hasAuthenticated;
 };
 
 typedef folly::Synchronized<RequestHandler> SyncedRequestHandler;
