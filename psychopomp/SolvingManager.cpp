@@ -2,9 +2,9 @@
 
 namespace psychopomp {
 void SolvingManager::update() {
-  auto services = binManager_->getServices();
+  auto services = mappingProvider_->getServiceMappings();
   for (auto& [service, bins] : services) {
-    for (auto [bin, requestHandler] : bins) {
+    for (auto& [binName, shardInfos] : bins) {
         
     }
   }

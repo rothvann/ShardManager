@@ -9,30 +9,45 @@
 
 #include "ServiceDiscovery.grpc.pb.h"
 #include "folly/MapUtil.h"
+#include "psychopomp/ServiceMappingProvider.h"
 #include "server_utils/HandlerManager.h"
-#include "svc_discovery/BinManager.h"
 #include "svc_discovery/RequestHandler.h"
-
 namespace psychopomp {
-class HandlerManager
-    : public server_utils::HandlerManager<Psychopomp::AsyncService> {
- public:
 
-  HandlerManager(std::shared_ptr<BinManager> binManager);
+struct HandlerTag {
+  RequestHandler* tag;
+  server_utils::Operation op;
+};
+
+class HandlerManager
+    : public server_utils::HandlerManager<Psychopomp::AsyncService>,
+      public ServiceMappingProvider {
+ public:
+  HandlerManager();
 
   void addHandler() override;
 
   void process(void* tag, bool ok) override;
 
-  void registerBin(void* tag, std::string serviceName, std::string binName);
+  std::shared_ptr<RequestHandler> getRequestHandler(RequestHandler* tag);
+  void removeRequestHandler(RequestHandler* tag);
 
-  std::shared_ptr<SyncedRequestHandler> getSyncedRequestHandler(void* tag);
-  void removeSyncedRequestHandler(void* tag);
+  virtual std::unordered_map<
+      ServiceName, std::unordered_map<BinName, std::vector<ShardInfo>>>
+  getServiceMappings() override;
+
+  void registerBin(RequestHandler* tag, std::string serviceName,
+                   std::string binName);
+  void removeBin(std::string serviceName, std::string binName);
 
  private:
-  std::shared_ptr<BinManager> binManager_;
   folly::Synchronized<
-      std::unordered_map<void*, std::shared_ptr<SyncedRequestHandler>>>
+      std::unordered_map<RequestHandler*, std::shared_ptr<RequestHandler>>>
       requestHandlerMap_;
+
+  folly::Synchronized<std::unordered_map<
+      std::string,
+      std::unordered_map<std::string, std::shared_ptr<RequestHandler>>>>
+      serviceConnectionsMap_;
 };
 }  // namespace psychopomp

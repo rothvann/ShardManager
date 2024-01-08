@@ -1,7 +1,7 @@
 #pragma once
 
 #include "psychopomp/placer/ExpressionTree.h"
-#include "psychopomp/placer/State.h"
+#include "psychopomp/placer/SolvingState.h"
 
 namespace psychopomp {
 
@@ -72,7 +72,7 @@ DomainId getFutureBin(
 }
 
 int32_t sumOperator(
-    std::shared_ptr<State> state, Metric metric,
+    std::shared_ptr<SolvingState> state, Metric metric,
     const AssignmentTree& assignmentTree,
     const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
     const MetricsMap& metricMap, const std::vector<DomainId>& changedChildren,
@@ -108,7 +108,7 @@ int32_t sumOperator(
 
 
 int32_t shardCountOperator(
-    std::shared_ptr<State> state,
+    std::shared_ptr<SolvingState> state,
     const AssignmentTree& assignmentTree,
     const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
     const MetricsMap& metricMap, const std::vector<DomainId>& changedChildren,

@@ -6,13 +6,13 @@
 #include "psychopomp/Types.h"
 #include "psychopomp/placer/constraints/ConstraintUtils.h"
 #include "psychopomp/placer/ExpressionTree.h"
-#include "psychopomp/placer/State.h"
+#include "psychopomp/placer/SolvingState.h"
 
 namespace psychopomp {
 
 class Constraint {
  public:
-  Constraint(std::shared_ptr<State> state)
+  Constraint(std::shared_ptr<SolvingState> state)
       : state_(state) {}
   virtual void canaryMoves(std::shared_ptr<MovementMap> comittiedMoves,
                            std::shared_ptr<MovementMap> canaryMoves) = 0;
@@ -44,6 +44,6 @@ class Constraint {
                                   prevTotalWeight + weightDelta);
   }
 
-  std::shared_ptr<State> state_;
+  std::shared_ptr<SolvingState> state_;
 };
 }  // namespace psychopomp

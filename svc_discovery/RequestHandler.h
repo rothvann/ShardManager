@@ -11,11 +11,7 @@
 
 namespace psychopomp {
 class HandlerManager;
-
-struct HandlerTag {
-  void* tag;
-  server_utils::Operation op;
-};
+struct HandlerTag;
 
 class RequestHandler
     : public server_utils::RequestHandler<ServerMessage, ClientMessage> {
@@ -41,6 +37,8 @@ class RequestHandler
   virtual void writeToStream(const ServerMessage& msg) override;
   virtual void* getOpTag(server_utils::Operation op) const override;
 
+  bool hasConnected() const;
+
   // GRPC
   HandlerManager* handlerManager_;
   grpc::ServerContext ctx_;
@@ -54,9 +52,11 @@ class RequestHandler
   bool isWriting_;
 
   // Handling Logic
-  HandlerStatus status_;
-  bool hasAuthenticated;
-};
+  folly::Synchronized<HandlerStatus> status_;
+  folly::Synchronized<bool> hasAuthenticated;
 
-typedef folly::Synchronized<RequestHandler> SyncedRequestHandler;
+  // State
+  folly::Synchronized<std::map<std::pair<int64_t, int64_t>, ShardRangeStatus>>
+      shardRangeStatus_;
+};
 }  // namespace psychopomp

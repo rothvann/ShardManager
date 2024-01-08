@@ -9,7 +9,7 @@ namespace psychopomp {
 
 class ExclusionConstraint : public Constraint {
  public:
-  ExclusionConstraint(std::shared_ptr<State> state,
+  ExclusionConstraint(std::shared_ptr<SolvingState> state,
                       MovementConsistency consistency, Domain exclusionDomain,
                       const std::vector<DomainId>& shardIds,
                       int32_t faultWeight)

@@ -10,14 +10,10 @@ RequestHandler::RequestHandler(Psychopomp::AsyncService* service,
                                grpc::ServerCompletionQueue* completionQueue,
                                HandlerManager* handlerManager)
     : handlerManager_(handlerManager) {
-  handlerTags_.emplace_back(
-      new HandlerTag{reinterpret_cast<void*>(this), Operation::CONNECT});
-  handlerTags_.emplace_back(
-      new HandlerTag{reinterpret_cast<void*>(this), Operation::READ});
-  handlerTags_.emplace_back(
-      new HandlerTag{reinterpret_cast<void*>(this), Operation::WRITE});
-  handlerTags_.emplace_back(
-      new HandlerTag{reinterpret_cast<void*>(this), Operation::FINISH});
+  handlerTags_.emplace_back(new HandlerTag{this, Operation::CONNECT});
+  handlerTags_.emplace_back(new HandlerTag{this, Operation::READ});
+  handlerTags_.emplace_back(new HandlerTag{this, Operation::WRITE});
+  handlerTags_.emplace_back(new HandlerTag{this, Operation::FINISH});
 
   stream_.reset(
       new grpc::ServerAsyncReaderWriter<ServerMessage, ClientMessage>(&ctx_));
@@ -26,7 +22,10 @@ RequestHandler::RequestHandler(Psychopomp::AsyncService* service,
 }
 
 void RequestHandler::handleConnect(bool ok) {
+  std::cout << "Handle connect" << std::endl;
   if (!ok) {
+    std::cout << "Connect not ok" << std::endl;
+    stop();
     return;
   }
   std::cout << "Client connected" << std::endl;
@@ -37,7 +36,7 @@ void RequestHandler::handleConnect(bool ok) {
 
 void RequestHandler::handleRead(bool ok, bool& shouldAttemptNext) {
   // Process read
-  std::cout << "Read message from stream" << std::endl;
+  std::cout << "Handle read" << std::endl;
 
   // Failed read from client disconnected etc
   // Should close handler after
@@ -46,13 +45,14 @@ void RequestHandler::handleRead(bool ok, bool& shouldAttemptNext) {
     stop();
     return;
   }
-
+  
   auto& message = getMessage();
 
-  if (!hasAuthenticated) {
+  if (!hasAuthenticated.copy()) {
     if (!message.has_connection_request()) {
       std::cout << "Attempting to connect without connection request"
                 << std::endl;
+      stop();
     }
     // Authenticate
     auto& binName = message.connection_request().bin_name();
@@ -68,8 +68,9 @@ void RequestHandler::handleRead(bool ok, bool& shouldAttemptNext) {
 };
 
 void RequestHandler::handleWrite(bool ok, bool& shouldAttemptNext) {
+  std::cout << "Handle write" << std::endl;
   // Check if write finished or channel is dropped
-  if (!ok || status_ == HandlerStatus::STOPPED) {
+  if (!ok || hasStopped()) {
     return;
   }
 
@@ -77,12 +78,13 @@ void RequestHandler::handleWrite(bool ok, bool& shouldAttemptNext) {
 };
 
 void RequestHandler::handleFinish(bool ok) {
+  std::cout << "Handle finish" << std::endl;
   /*
   Logging etc
   */
 
   std::cout << "Finishing" << std::endl;
-  handlerManager_->removeSyncedRequestHandler(this);
+  handlerManager_->removeRequestHandler(this);
 };
 
 void RequestHandler::readFromStream() {
@@ -99,12 +101,17 @@ void* RequestHandler::getOpTag(Operation op) const {
 }
 
 void RequestHandler::stop() {
-  std::cout << "Stopping" << std::endl;
-  status_ = HandlerStatus::STOPPED;
-  stream_->Finish(grpc::Status::OK, getOpTag(Operation::FINISH));
+  if (hasStopped()) {
+    return;
+  }
+  *status_.wlock() = HandlerStatus::STOPPED;
+  if (hasAuthenticated.copy()) {
+    stream_->Finish(grpc::Status::OK, getOpTag(Operation::FINISH));
+  }
 }
 
 bool RequestHandler::hasStopped() const {
-  return status_ == HandlerStatus::STOPPED;
+  return status_.copy() == HandlerStatus::STOPPED;
 }
+
 }  // namespace psychopomp

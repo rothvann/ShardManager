@@ -2,9 +2,9 @@
 
 #include <chrono>
 
-#include "svc_discovery/BinManager.h"
-#include "psychopomp/placer/SolvingState.h"
+#include "psychopomp/ServiceMappingProvider.h"
 #include "psychopomp/placer/IterativeLocalSearch.h"
+#include "psychopomp/placer/SolvingState.h"
 
 // Create state
 // Remove finished mutations
@@ -15,15 +15,15 @@ namespace psychopomp {
 
 class SolvingManager {
  public:
-  SolvingManager(std::shared_ptr<BinManager> binManager, size_t periodMs,
-                 size_t numThreads);
+  SolvingManager(std::shared_ptr<ServiceMappingProvider> mappingProvider,
+                 size_t periodMs, size_t numThreads);
 
  private:
   void update();
   void solve();
   void output();
 
-  std::shared_ptr<BinManager> binManager_;
+  std::shared_ptr<ServiceMappingProvider> mappingProvider_;
   size_t periodMs_;
   size_t numThreads_;
 

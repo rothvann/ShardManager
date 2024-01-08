@@ -6,12 +6,11 @@ cxx_library(
         'RequestHandler.cpp',
     ],
     exported_headers = [
-        'Bin.h',
         'BinManager.h',
         'HandlerManager.h',
         'RequestHandler.h',
     ],
-    exported_deps = ['//external_deps:folly', '//server_utils:server_utils', '//proto:service_discovery_cpp'],
+    exported_deps = ['//external_deps:folly', '//server_utils:server_utils', '//proto:service_discovery_cpp', '//psychopomp:solving'],
     preferred_linkage = 'static',
     visibility = [
         'PUBLIC',

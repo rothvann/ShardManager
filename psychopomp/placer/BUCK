@@ -13,7 +13,7 @@ cxx_library(
     'SolvingState.h',
   ],
   exported_deps = [
-    '//psychopomp:psychopomp_common',
+    '//psychopomp:common',
     '//psychopomp/placer/utils:utils', 
     '//external_deps:unordered-dense', 
     '//external_deps:folly', 
@@ -40,7 +40,7 @@ cxx_library(
     '//psychopomp/placer:states',
     '//external_deps:folly', 
     '//external_deps:unordered-dense', 
-    '//psychopomp:psychopomp_common', 
+    '//psychopomp:common', 
     '//psychopomp/placer/utils:utils', 
     '//proto:service_discovery_cpp'
   ],
@@ -62,7 +62,7 @@ cxx_library(
     '//psychopomp/placer:constraints',
     '//external_deps:folly', 
     '//external_deps:unordered-dense', 
-    '//psychopomp:psychopomp_common', 
+    '//psychopomp:common', 
     '//psychopomp/placer/utils:utils', 
     '//proto:service_discovery_cpp'
   ],
@@ -79,7 +79,7 @@ cxx_library(
     'simulation/ShardGenerator.h',
   ],
   exported_deps = [
-    '//psychopomp:psychopomp_common', 
+    '//psychopomp:common', 
     '//psychopomp/placer/utils:utils', 
   ],
   preferred_linkage = 'static',

@@ -6,7 +6,7 @@ namespace psychopomp {
 
 class MetricConstraint : public Constraint {
  public:
-  MetricConstraint(std::shared_ptr<State> state,
+  MetricConstraint(std::shared_ptr<SolvingState> state,
                    MovementConsistency consistency, Domain domain,
                    const std::vector<DomainId>& domainIds, Metric metric,
                    int32_t capacity, int32_t faultWeight)

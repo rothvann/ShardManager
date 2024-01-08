@@ -21,9 +21,9 @@ struct BinWeightInfo {
   CommittableKey<int64_t> totalWeight;
 };
 
-class State {
+class SolvingState {
  public:
-  State(const std::vector<ShardInfo>& shardInfoVector,
+  SolvingState(const std::vector<ShardInfo>& shardInfoVector,
         const std::vector<size_t> domainSizes_,
         const std::vector<std::vector<DomainId>>& binDomainsMapping,
         const std::vector<std::vector<DomainId>>& binShardMapping);

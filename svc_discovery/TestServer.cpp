@@ -5,9 +5,7 @@
 #include "svc_discovery/HandlerManager.h"
 
 int main() {
-  auto binManager = std::make_shared<psychopomp::BinManager>();
-  auto handlerManager =
-      std::make_shared<psychopomp::HandlerManager>(binManager);
+  auto handlerManager = std::make_shared<psychopomp::HandlerManager>();
   {
     auto server = std::make_shared<
         server_utils::AsyncServer<psychopomp::Psychopomp::AsyncService>>(
@@ -19,18 +17,20 @@ int main() {
       char i;
       std::cin >> i;
       if (i == '0') {
+        std::cout << "Breaking" << std::endl;
         break;
       } else if (i == '1') {
-        auto services = binManager->getServices();
-        for (auto [service, binPair] : services) {
+        auto services = handlerManager->getServiceMappings();
+        for (auto [service, binMapping] : services) {
           std::cout << "Service: " << service << std::endl;
-          for (auto [bin, requestHandler] : binPair) {
+          for (auto [bin, shards] : binMapping) {
             std::cout << bin << ", ";
           }
           std::cout << std::endl;
         }
       }
     }
+    std::cout << "end" << std::endl;
   }
   return 0;
 }

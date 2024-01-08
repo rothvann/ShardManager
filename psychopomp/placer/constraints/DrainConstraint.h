@@ -6,7 +6,7 @@ namespace psychopomp {
 
 class DrainConstraint : public Constraint {
  public:
-  DrainConstraint(std::shared_ptr<State> state, MovementConsistency consistency,
+  DrainConstraint(std::shared_ptr<SolvingState> state, MovementConsistency consistency,
                   Domain domain, const std::vector<DomainId>& domainIds,
                   int32_t faultWeight)
       : Constraint(state),

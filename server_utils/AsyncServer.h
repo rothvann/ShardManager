@@ -27,7 +27,7 @@ class AsyncServer {
 
   ~AsyncServer() {
     std::cerr << "Closing" << std::endl;
-    server_->Shutdown();
+    server_->Shutdown(std::chrono::system_clock::now());
     
     for (auto& completionQueue : completionQueues_) {
       std::cerr << "Shtudown cq" << std::endl;
