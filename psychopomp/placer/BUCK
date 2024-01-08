@@ -4,13 +4,13 @@ cxx_library(
     'AssignmentTree.cpp',
     'ExpressionTree.cpp',
     'MovementMap.cpp',
-    'State.cpp',
+    'SolvingState.cpp',
   ],
   exported_headers = [
     'AssignmentTree.h',
     'ExpressionTree.h',
     'MovementMap.h',
-    'State.h',
+    'SolvingState.h',
   ],
   exported_deps = [
     '//psychopomp:psychopomp_common',

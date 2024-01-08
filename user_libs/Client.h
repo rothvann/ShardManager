@@ -123,11 +123,12 @@ class Client : server_utils::RequestHandler<psychopomp::ClientMessage,
       return;
     }
     // Process messages for updates that need to occur sequentially
-    processMessageSequentially(message_);
+    auto& message = getMessage();
+    processMessageSequentially(message);
 
     // Create copy of message_ and process async
     auto processThread = std::make_shared<std::thread>(
-        [&, message_ = message_]() { processMessageAsync(message_); });
+        [&, message = message]() { processMessageAsync(message); });
     threads_.emplace(processThread->get_id(), processThread);
 
     shouldAttemptNext = true;
@@ -143,11 +144,11 @@ class Client : server_utils::RequestHandler<psychopomp::ClientMessage,
   };
 
   virtual void readFromStream() override {
-    stream_->Read(&message_, getOpTag(Operation::READ));
+    stream_->Read(&getMessage(), getOpTag(Operation::READ));
   };
 
   virtual void writeToStream(const psychopomp::ClientMessage& msg) override {
-    stream_->Write(msgQueue_.front(), getOpTag(Operation::WRITE));
+    stream_->Write(msg, getOpTag(Operation::WRITE));
   }
 
   virtual void* getOpTag(Operation op) const override {

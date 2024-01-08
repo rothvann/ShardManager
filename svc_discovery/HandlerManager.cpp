@@ -20,8 +20,7 @@ void HandlerManager::addHandler() {
 }
 
 void HandlerManager::process(void* tag, bool ok) {
-  HandlerTag* handlerTag =
-      reinterpret_cast<HandlerTag*>(tag);
+  HandlerTag* handlerTag = reinterpret_cast<HandlerTag*>(tag);
   std::shared_ptr<SyncedRequestHandler> requestHandler =
       getSyncedRequestHandler(handlerTag->tag);
   if (!requestHandler) {
@@ -33,10 +32,16 @@ void HandlerManager::process(void* tag, bool ok) {
   requestHandlerPtr->process(handlerTag->op, ok);
 }
 
-void HandlerManager::registerBin(std::string serviceName, std::string binName) {
-  
+void HandlerManager::registerBin(void* tag, std::string serviceName,
+                                 std::string binName) {
+  std::shared_ptr<SyncedRequestHandler> requestHandler =
+      getSyncedRequestHandler(tag);
+  if (!requestHandler) {
+    // log error;
+    return;
+  }
+  binManager_->add(requestHandler, serviceName, binName);
 }
-
 
 std::shared_ptr<SyncedRequestHandler> HandlerManager::getSyncedRequestHandler(
     void* tag) {

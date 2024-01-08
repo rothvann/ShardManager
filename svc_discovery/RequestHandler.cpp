@@ -47,8 +47,21 @@ void RequestHandler::handleRead(bool ok, bool& shouldAttemptNext) {
     return;
   }
 
+  auto& message = getMessage();
+
   if (!hasAuthenticated) {
-    /* authenticate */
+    if (!message.has_connection_request()) {
+      std::cout << "Attempting to connect without connection request"
+                << std::endl;
+    }
+    // Authenticate
+    auto& binName = message.connection_request().bin_name();
+    auto& serviceName = message.connection_request().service_name();
+    auto& serviceKey = message.connection_request().service_key();
+    std::cout << "Bin: " << binName << " Service: " << serviceName
+              << " Key: " << serviceKey << std::endl;
+
+    handlerManager_->registerBin(this, serviceName, binName);
   }
 
   shouldAttemptNext = true;
@@ -73,11 +86,11 @@ void RequestHandler::handleFinish(bool ok) {
 };
 
 void RequestHandler::readFromStream() {
-  stream_->Read(&message_, getOpTag(Operation::READ));
+  stream_->Read(&getMessage(), getOpTag(Operation::READ));
 };
 
-void RequestHandler::writeToStream(const ServerMessage& msg){
-
+void RequestHandler::writeToStream(const ServerMessage& msg) {
+  stream_->Write(msg, getOpTag(Operation::WRITE));
 };
 
 void* RequestHandler::getOpTag(Operation op) const {

@@ -5,7 +5,7 @@
 
 namespace psychopomp {
 ExpressionTree::ExpressionTree(
-    std::shared_ptr<State> state, Domain domain,
+    std::shared_ptr<SolvingState> state, Domain domain,
     const std::vector<DomainId>& treeParents,
     std::function<int32_t(const AssignmentTree&,
                           const std::vector<std::shared_ptr<MovementMap>>&,

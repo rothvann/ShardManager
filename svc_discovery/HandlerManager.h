@@ -24,7 +24,7 @@ class HandlerManager
 
   void process(void* tag, bool ok) override;
 
-  void registerBin(std::string serviceName, std::string binName);
+  void registerBin(void* tag, std::string serviceName, std::string binName);
 
   std::shared_ptr<SyncedRequestHandler> getSyncedRequestHandler(void* tag);
   void removeSyncedRequestHandler(void* tag);

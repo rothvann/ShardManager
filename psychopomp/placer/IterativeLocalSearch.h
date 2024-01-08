@@ -6,7 +6,7 @@
 #include "folly/MapUtil.h"
 #include "psychopomp/placer/constraints/Constraint.h"
 #include "psychopomp/placer/ExpressionTree.h"
-#include "psychopomp/placer/State.h"
+#include "psychopomp/placer/SolvingState.h"
 #include "psychopomp/placer/utils/Committable.h"
 #include "psychopomp/placer/utils/RandomGenerator.h"
 
@@ -19,7 +19,7 @@ class IterativeLocalSearch {
         randomGen_(random::SeededRandomGenerator()) {}
 
   std::shared_ptr<MovementMap> solve(
-      std::shared_ptr<State> state,
+      std::shared_ptr<SolvingState> state,
       std::vector<std::shared_ptr<Constraint>> constraints) {
     std::shared_ptr<MovementMap> committedMoves =
         std::make_shared<MovementMap>();
@@ -68,7 +68,7 @@ class IterativeLocalSearch {
   }
 
   std::optional<std::shared_ptr<MovementMap>> getMovementForBin(
-      std::shared_ptr<State> state, std::shared_ptr<MovementMap> committedMoves,
+      std::shared_ptr<SolvingState> state, std::shared_ptr<MovementMap> committedMoves,
       std::vector<std::shared_ptr<Constraint>> constraints, DomainId binId,
       int64_t& currentWeight) {
     std::shared_ptr<MovementMap> canariedMoves =

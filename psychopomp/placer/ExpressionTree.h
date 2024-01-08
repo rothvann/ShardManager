@@ -5,7 +5,7 @@
 #include <unordered_map>
 
 #include "psychopomp/placer/AssignmentTree.h"
-#include "psychopomp/placer/State.h"
+#include "psychopomp/placer/SolvingState.h"
 #include "psychopomp/placer/utils/Committable.h"
 
 namespace psychopomp {
@@ -21,7 +21,7 @@ function passed in.
 class ExpressionTree {
  public:
   ExpressionTree(
-      std::shared_ptr<State> state, Domain domain,
+      std::shared_ptr<SolvingState> state, Domain domain,
       const std::vector<DomainId>& treeParents,
       std::function<int32_t(const AssignmentTree&,
                             const std::vector<std::shared_ptr<MovementMap>>&,
@@ -55,7 +55,7 @@ class ExpressionTree {
           toUpdate,
       const std::vector<std::shared_ptr<MovementMap>>& movementMaps);
 
-  std::shared_ptr<State> state_;
+  std::shared_ptr<SolvingState> state_;
 
   std::shared_ptr<AssignmentTree> assignmentTree_;
   std::function<int32_t(const AssignmentTree&,

@@ -54,23 +54,13 @@ class RequestHandler {
   }
 
  protected:
+  R& getMessage() {
+    return message_;
+  }
+
   void write(W msg) {
     addToWriteQueue(msg);
     attemptWrite();
-  }
-  
-  void addToWriteQueue(W msg) {
-    std::lock_guard<std::mutex> lockGuard(writeLock_);
-    msgQueue_.push(std::move(msg));
-  }
-  
-  void finishWrite(bool ok) {
-    std::cout << "Write finished" << std::endl;
-    std::lock_guard<std::mutex> lockGuard(writeLock_);
-    if (ok && !msgQueue_.empty()) {
-      msgQueue_.pop();
-    }
-    isWriting_ = false;
   }
 
   void attemptWrite() {
@@ -94,7 +84,21 @@ class RequestHandler {
     readFromStream();
   }
 
-  // IO
+private:
+  void addToWriteQueue(W msg) {
+    std::lock_guard<std::mutex> lockGuard(writeLock_);
+    msgQueue_.push(std::move(msg));
+  }
+  
+  void finishWrite(bool ok) {
+    std::cout << "Write finished" << std::endl;
+    std::lock_guard<std::mutex> lockGuard(writeLock_);
+    if (ok && !msgQueue_.empty()) {
+      msgQueue_.pop();
+    }
+    isWriting_ = false;
+  }
+
   std::mutex readLock_;
   R message_;
   bool isReading_;

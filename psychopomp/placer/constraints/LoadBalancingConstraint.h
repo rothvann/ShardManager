@@ -6,7 +6,7 @@ namespace psychopomp {
 
 class LoadBalancingConstraint : public Constraint {
  public:
-  LoadBalancingConstraint(std::shared_ptr<State> state, Domain domain,
+  LoadBalancingConstraint(std::shared_ptr<SolvingState> state, Domain domain,
                           const std::vector<DomainId>& domainIds, Metric metric,
                           int32_t maxDelta, double faultWeightMultiplier)
       : Constraint(state),

@@ -4,6 +4,7 @@ namespace psychopomp {
 
 void BinManager::add(std::shared_ptr<SyncedRequestHandler> requestHandler,
                      std::string serviceName, std::string binName) {
+  std::cout << "Adding " << serviceName << " " << binName << std::endl;
   auto bin = std::make_shared<Bin>(binName, requestHandler);
   auto connectionsMap = serviceConnectionsMap_.wlock();
   (*connectionsMap)[serviceName].emplace(binName, bin);
