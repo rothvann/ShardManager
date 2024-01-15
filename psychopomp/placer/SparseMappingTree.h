@@ -7,9 +7,9 @@
 #include "psychopomp/placer/MovementMap.h"
 
 namespace psychopomp {
-class AssignmentTree {
+class SparseMappingTree {
  public:
-  AssignmentTree(Domain shardDomain, Domain binDomain);
+  SparseMappingTree(Domain shardDomain, Domain binDomain);
 
   void addMapping(std::pair<Domain, DomainId> parent,
                   std::pair<Domain, std::vector<DomainId>> children);

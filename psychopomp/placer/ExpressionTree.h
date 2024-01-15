@@ -4,7 +4,7 @@
 #include <memory>
 #include <unordered_map>
 
-#include "psychopomp/placer/AssignmentTree.h"
+#include "psychopomp/placer/SparseMappingTree.h"
 #include "psychopomp/placer/SolvingState.h"
 #include "psychopomp/placer/utils/Committable.h"
 
@@ -23,13 +23,13 @@ class ExpressionTree {
   ExpressionTree(
       std::shared_ptr<SolvingState> state, Domain domain,
       const std::vector<DomainId>& treeParents,
-      std::function<int32_t(const AssignmentTree&,
+      std::function<int32_t(const SparseMappingTree&,
                             const std::vector<std::shared_ptr<MovementMap>>&,
                             const MetricsMap&, const std::vector<DomainId>&,
                             std::pair<Domain, DomainId>)>
           calcMetricFunc);
 
-  std::shared_ptr<AssignmentTree> getAssignmentTree() const;
+  std::shared_ptr<SparseMappingTree> getAssignmentTree() const;
 
   /*
   Canary a set of moves. Changes are outputted to metrics map.
@@ -57,8 +57,8 @@ class ExpressionTree {
 
   std::shared_ptr<SolvingState> state_;
 
-  std::shared_ptr<AssignmentTree> assignmentTree_;
-  std::function<int32_t(const AssignmentTree&,
+  std::shared_ptr<SparseMappingTree> assignmentTree_;
+  std::function<int32_t(const SparseMappingTree&,
                         const std::vector<std::shared_ptr<MovementMap>>&,
                         const MetricsMap&, const std::vector<DomainId>&,
                         std::pair<Domain, DomainId>)>

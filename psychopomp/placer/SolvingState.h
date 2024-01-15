@@ -10,7 +10,7 @@
 
 #include "ankerl/unordered_dense.h"
 #include "psychopomp/Types.h"
-#include "psychopomp/placer/AssignmentTree.h"
+#include "psychopomp/placer/SparseMappingTree.h"
 #include "psychopomp/placer/MovementMap.h"
 #include "psychopomp/placer/utils/Committable.h"
 
@@ -23,15 +23,13 @@ struct BinWeightInfo {
 
 class SolvingState {
  public:
-  SolvingState(const std::vector<ShardInfo>& shardInfoVector,
-        const std::vector<size_t> domainSizes_,
-        const std::vector<std::vector<DomainId>>& binDomainsMapping,
-        const std::vector<std::vector<DomainId>>& binShardMapping);
+  SolvingState(
+      std::shared_ptr<std::vector<MappedShardInfo>> shardInfoVector,
+      std::vector<size_t> domainSizes_,
+      std::shared_ptr<std::vector<std::vector<DomainId>>> binDomainsMapping,
+      std::shared_ptr<std::vector<std::vector<DomainId>>> binShardMapping);
 
-  Domain addDomain(const Domain& childDomain,
-                   const std::vector<std::vector<DomainId>>& parentChildMap);
-
-  std::shared_ptr<AssignmentTree> getAssignmentTree() const;
+  std::shared_ptr<SparseMappingTree> getAssignmentTree() const;
 
   std::shared_ptr<MovementMap> getMovementMap() const;
 
@@ -40,10 +38,10 @@ class SolvingState {
   Domain getShardDomain() const;
   Domain getBinDomain() const;
 
-  const ShardInfo& getShardInfo(DomainId shardId) const;
+  const MappedShardInfo& getShardInfo(DomainId shardId) const;
 
   std::optional<DomainId> getBinParentInDomain(DomainId binId,
-                                                 Domain parentDomain) const;
+                                               Domain parentDomain) const;
 
   size_t getDomainSize(Domain domain) const;
 
@@ -57,12 +55,10 @@ class SolvingState {
   void addDomainInternal(
       const Domain& parentDomain, const Domain& childDomain,
       const std::vector<std::vector<DomainId>>& parentChildMap);
-  Domain getNewDomain();
 
-  void setShards(const size_t numShards);
-  Domain shardDomain_;
-  Domain binDomain_;
-  size_t domainCounter_;
+  const Domain shardDomain_;
+  const Domain binDomain_;
+  const size_t domainOffset_;
 
   std::unordered_map<Metric, std::vector<int32_t>> metricVectorMap_;
   BinWeightInfo binWeightInfo_;
@@ -72,11 +68,12 @@ class SolvingState {
   std::unordered_map<Domain, std::unordered_map<DomainId, DomainId>>
       domainIdMap_;
 
-  std::vector<ShardInfo> shardInfoVector_;
+  std::shared_ptr<std::vector<MappedShardInfo>> shardInfoVector_;
+
   std::unordered_map<DomainId, std::unordered_map<Domain, DomainId>>
       binDomainsMapping_;
 
-  std::shared_ptr<AssignmentTree> assignmentTree_;
+  std::shared_ptr<SparseMappingTree> assignmentTree_;
 
   // Movements
   std::shared_ptr<MovementMap> movementMap_;

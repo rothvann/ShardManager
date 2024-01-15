@@ -15,7 +15,7 @@ class DrainConstraint : public Constraint {
         metric_(kShardCountMetric),
         faultWeight_(faultWeight) {
     auto func =
-        [&](const AssignmentTree& assignmentTree,
+        [&](const SparseMappingTree& assignmentTree,
             const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
             const MetricsMap& metricMap,
             const std::vector<DomainId>& changedChildren,
@@ -42,7 +42,7 @@ class DrainConstraint : public Constraint {
 
  private:
   int32_t calculate(
-      const AssignmentTree& assignmentTree,
+      const SparseMappingTree& assignmentTree,
       const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
       const MetricsMap& metricMap, const std::vector<DomainId>& changedChildren,
       std::pair<Domain, DomainId> node) {

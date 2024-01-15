@@ -19,9 +19,11 @@ class SolvingManager {
                  size_t periodMs, size_t numThreads);
 
  private:
-  void update();
-  void solve();
-  void output();
+  void updateAll();
+
+  void update(
+      ServiceName& svcName,
+      std::unordered_map<BinName, std::vector<std::pair<ShardKey, ShardKey>>>& shardMappings);
 
   std::shared_ptr<ServiceMappingProvider> mappingProvider_;
   size_t periodMs_;
@@ -29,7 +31,10 @@ class SolvingManager {
 
   folly::CPUThreadPoolExecutor threadPool_;
 
-  std::unordered_map<std::string, MovementMap> movementMaps_;
-  std::unordered_map<std::string, SolvingState> solvingStates_;
+  std::unordered_map<ServiceName, std::shared_ptr<MovementMap>> movementMaps_;
+  std::unordered_map<ServiceName, std::shared_ptr<SolvingState>> solvingStates_;
+  std::unordered_map<
+      ServiceName, std::shared_ptr<std::vector<std::pair<ShardKey, ShardKey>>>>
+      shardKeyRangeMappings_;
 };
 }  // namespace psychopomp

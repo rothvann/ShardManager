@@ -1,11 +1,11 @@
-#include "psychopomp/placer/AssignmentTree.h"
+#include "psychopomp/placer/SparseMappingTree.h"
 
 namespace psychopomp {
 
-AssignmentTree::AssignmentTree(Domain shardDomain, Domain binDomain)
+SparseMappingTree::SparseMappingTree(Domain shardDomain, Domain binDomain)
     : shardDomain_(shardDomain), binDomain_(binDomain) {}
 
-void AssignmentTree::addMapping(
+void SparseMappingTree::addMapping(
     std::pair<Domain, DomainId> parent,
     std::pair<Domain, std::vector<DomainId>> children) {
   const auto parentDomain = parent.first;
@@ -30,7 +30,7 @@ void AssignmentTree::addMapping(
       std::move(childrenDomainIds);
 }
 
-std::vector<std::pair<Domain, DomainId>> AssignmentTree::getParents(
+std::vector<std::pair<Domain, DomainId>> SparseMappingTree::getParents(
     Domain domain, DomainId domainId,
     std::vector<std::shared_ptr<MovementMap>> movementMaps) const {
   std::vector<std::pair<Domain, DomainId>> domainParents;
@@ -63,7 +63,7 @@ std::vector<std::pair<Domain, DomainId>> AssignmentTree::getParents(
   return domainParents;
 }
 
-std::pair<Domain, std::vector<DomainId>> AssignmentTree::getChildren(
+std::pair<Domain, std::vector<DomainId>> SparseMappingTree::getChildren(
     Domain domain, DomainId domainId,
     std::vector<std::shared_ptr<MovementMap>> movementMaps) const {
   std::vector<DomainId> children;
@@ -83,16 +83,16 @@ std::pair<Domain, std::vector<DomainId>> AssignmentTree::getChildren(
   return {childDomain, children};
 }
 
-std::vector<DomainId>& AssignmentTree::getChildren(Domain domain,
+std::vector<DomainId>& SparseMappingTree::getChildren(Domain domain,
                                                    DomainId domainId) {
   return parentToChildMap_[domain][domainId];
 }
 
-Domain AssignmentTree::getChildDomain(Domain domain) const {
+Domain SparseMappingTree::getChildDomain(Domain domain) const {
   return parentToChildDomainMap_.at(domain);
 }
 
-std::vector<DomainId> AssignmentTree::getAllDomainIds(Domain domain) {
+std::vector<DomainId> SparseMappingTree::getAllDomainIds(Domain domain) {
   std::vector<DomainId> domainIds;
   if (parentToChildDomainMap_.count(domain) != 0) {
     domainIds.reserve(parentToChildMap_[domain].size());
@@ -112,7 +112,7 @@ std::vector<DomainId> AssignmentTree::getAllDomainIds(Domain domain) {
   return domainIds;
 }
 
-bool AssignmentTree::doesNodeExist(Domain domain, DomainId domainId) {
+bool SparseMappingTree::doesNodeExist(Domain domain, DomainId domainId) {
   const auto& childMap = childToParentMap_[domain];
   const auto& parentMap = parentToChildMap_[domain];
   auto childIt = childMap.find(domainId);

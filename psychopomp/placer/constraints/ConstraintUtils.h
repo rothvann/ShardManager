@@ -41,7 +41,7 @@ bool shouldConsiderShard(
   return shouldConsiderShard(consistency, isFutureChild, isMoving);
 }
 
-DomainId getCurrentBin(const AssignmentTree& assignmentTree, Domain shardDomain,
+DomainId getCurrentBin(const SparseMappingTree& assignmentTree, Domain shardDomain,
                        DomainId shardId, Domain binDomain) {
   auto parents = assignmentTree.getParents(shardDomain, shardId, {});
   for (auto& parent : parents) {
@@ -53,7 +53,7 @@ DomainId getCurrentBin(const AssignmentTree& assignmentTree, Domain shardDomain,
 }
 
 DomainId getFutureBin(
-    const AssignmentTree& assignmentTree,
+    const SparseMappingTree& assignmentTree,
     const std::vector<std::shared_ptr<psychopomp::MovementMap>>& movementMaps,
     Domain shardDomain, DomainId shardId, Domain binDomain) {
   for (auto movementMap : movementMaps) {
@@ -73,7 +73,7 @@ DomainId getFutureBin(
 
 int32_t sumOperator(
     std::shared_ptr<SolvingState> state, Metric metric,
-    const AssignmentTree& assignmentTree,
+    const SparseMappingTree& assignmentTree,
     const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
     const MetricsMap& metricMap, const std::vector<DomainId>& changedChildren,
     std::pair<Domain, DomainId> node, MovementConsistency consistency) {
@@ -109,7 +109,7 @@ int32_t sumOperator(
 
 int32_t shardCountOperator(
     std::shared_ptr<SolvingState> state,
-    const AssignmentTree& assignmentTree,
+    const SparseMappingTree& assignmentTree,
     const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
     const MetricsMap& metricMap, const std::vector<DomainId>& changedChildren,
     std::pair<Domain, DomainId> node, MovementConsistency consistency) {

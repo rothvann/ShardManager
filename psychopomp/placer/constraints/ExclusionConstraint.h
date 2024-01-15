@@ -17,7 +17,7 @@ class ExclusionConstraint : public Constraint {
         exclusionDomain_(exclusionDomain),
         faultWeight_(faultWeight) {
     auto func =
-        [&](const AssignmentTree& assignmentTree,
+        [&](const SparseMappingTree& assignmentTree,
             const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
             const MetricsMap& metricMap,
             const std::vector<DomainId>& changedChildren,
@@ -30,7 +30,7 @@ class ExclusionConstraint : public Constraint {
 
  private:
   int32_t addBinCount(
-      const AssignmentTree& assignmentTree,
+      const SparseMappingTree& assignmentTree,
       const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
       std::pair<Domain, DomainId> node) {
     // Get next parent bin

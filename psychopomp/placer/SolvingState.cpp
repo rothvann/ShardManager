@@ -6,45 +6,33 @@
 
 namespace psychopomp {
 
-SolvingState::SolvingState(const std::vector<ShardInfo>& shardInfoVector,
+SolvingState::SolvingState(std::shared_ptr<std::vector<MappedShardInfo>> shardInfoVector,
              const std::vector<size_t> domainSizes,
-             const std::vector<std::vector<DomainId>>& binDomainsMapping,
-             const std::vector<std::vector<DomainId>>& binShardMapping)
-    : domainCounter_(0),
+             std::shared_ptr<std::vector<std::vector<DomainId>>> binDomainsMapping,
+             std::shared_ptr<std::vector<std::vector<DomainId>>> binShardMapping)
+    : shardDomain_(0),
+      binDomain_(1), 
+      domainOffset_(2),
       movementMap_(std::make_shared<MovementMap>()),
       shardInfoVector_(shardInfoVector) {
-  setShards(shardInfoVector_.size());
-  binDomain_ = getNewDomain();
-  assignmentTree_ = std::make_shared<AssignmentTree>(shardDomain_, binDomain_);
-  addDomainInternal(binDomain_, shardDomain_, binShardMapping);
+  domainElements_.emplace(shardDomain_, shardInfoVector_->size());
+
+  assignmentTree_ = std::make_shared<SparseMappingTree>(shardDomain_, binDomain_);
+  addDomainInternal(binDomain_, shardDomain_, *binShardMapping);
 
   auto childDomain = binDomain_;
-  auto numBins = binShardMapping.size();
+  auto numBins = binShardMapping->size();
   for (size_t domain = 0; domain < domainSizes.size(); domain++) {
-    auto parentDomain = getNewDomain();
     std::vector<std::vector<DomainId>> parentChildMapping(domainSizes[domain]);
     for (DomainId binId = 0; binId < numBins; binId++) {
-      auto parentId = binDomainsMapping[binId][domain];
+      auto parentId = (*binDomainsMapping)[binId][domain];
       parentChildMapping[parentId].emplace_back(binId);
-      binDomainsMapping_[binId][parentDomain] = parentId;
+      binDomainsMapping_[binId][domain + domainOffset_] = parentId;
     }
 
-    addDomainInternal(parentDomain, childDomain, parentChildMapping);
-    childDomain = parentDomain;
+    addDomainInternal(domain + domainOffset_, childDomain, parentChildMapping);
+    childDomain = domain + domainOffset_;
   }
-}
-
-void SolvingState::setShards(const size_t numShards) {
-  shardDomain_ = getNewDomain();
-  domainElements_.emplace(shardDomain_, numShards);
-}
-
-Domain SolvingState::addDomain(
-    const Domain& childDomain,
-    const std::vector<std::vector<DomainId>>& parentChildMap) {
-  Domain parentDomain = getNewDomain();
-  addDomainInternal(parentDomain, childDomain, parentChildMap);
-  return parentDomain;
 }
 
 void SolvingState::addDomainInternal(
@@ -59,7 +47,7 @@ void SolvingState::addDomainInternal(
   }
 }
 
-std::shared_ptr<AssignmentTree> SolvingState::getAssignmentTree() const {
+std::shared_ptr<SparseMappingTree> SolvingState::getAssignmentTree() const {
   return assignmentTree_;
 }
 
@@ -75,8 +63,8 @@ Domain SolvingState::getShardDomain() const { return shardDomain_; }
 
 Domain SolvingState::getBinDomain() const { return binDomain_; }
 
-const ShardInfo& SolvingState::getShardInfo(DomainId shardId) const {
-  return shardInfoVector_[shardId];
+const MappedShardInfo& SolvingState::getShardInfo(DomainId shardId) const {
+  return (*shardInfoVector_)[shardId];
 }
 
 std::optional<DomainId> SolvingState::getBinParentInDomain(
@@ -110,6 +98,4 @@ int32_t SolvingState::getShardMetric(Metric metric, DomainId domainId) const {
 }
 
 BinWeightInfo& SolvingState::getBinWeightInfo() { return binWeightInfo_; }
-
-Domain SolvingState::getNewDomain() { return domainCounter_++; }
 }  // namespace psychopomp

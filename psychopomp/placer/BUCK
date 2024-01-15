@@ -1,13 +1,13 @@
 cxx_library(
   name = 'states',
   srcs = [
-    'AssignmentTree.cpp',
+    'SparseMappingTree.cpp',
     'ExpressionTree.cpp',
     'MovementMap.cpp',
     'SolvingState.cpp',
   ],
   exported_headers = [
-    'AssignmentTree.h',
+    'SparseMappingTree.h',
     'ExpressionTree.h',
     'MovementMap.h',
     'SolvingState.h',

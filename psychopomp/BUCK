@@ -14,7 +14,6 @@ cxx_library(
     srcs = ['SolvingManager.cpp'],
     exported_headers = [
         'ServiceMappingProvider.h',
-        'SolvingEntity.h',
         'SolvingManager.h'
     ],
     exported_deps = ['//psychopomp:common', '//external_deps:folly', '//psychopomp/placer:placer'],

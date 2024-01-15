@@ -17,7 +17,7 @@ class MetricConstraint : public Constraint {
         capacity_(capacity),
         faultWeight_(faultWeight) {
     auto func =
-        [&](const AssignmentTree& assignmentTree,
+        [&](const SparseMappingTree& assignmentTree,
             const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
             const MetricsMap& metricMap,
             const std::vector<DomainId>& changedChildren,
@@ -44,7 +44,7 @@ class MetricConstraint : public Constraint {
 
  private:
   int32_t calculate(
-      const AssignmentTree& assignmentTree,
+      const SparseMappingTree& assignmentTree,
       const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
       const MetricsMap& metricMap, const std::vector<DomainId>& changedChildren,
       std::pair<Domain, DomainId> node) {

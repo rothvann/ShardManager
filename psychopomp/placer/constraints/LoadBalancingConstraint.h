@@ -17,7 +17,7 @@ class LoadBalancingConstraint : public Constraint {
     std::vector<std::vector<DomainId>> loadBalancingDomainIdMap = {domainIds};
     loadBalancingDomain_ = state->addDomain(domain_, loadBalancingDomainIdMap);
     auto minFunc =
-        [&](const AssignmentTree& assignmentTree,
+        [&](const SparseMappingTree& assignmentTree,
             const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
             const MetricsMap& metricMap,
             const std::vector<DomainId>& changedChildren,
@@ -28,7 +28,7 @@ class LoadBalancingConstraint : public Constraint {
                        });
     };
     auto maxFunc =
-        [&](const AssignmentTree& assignmentTree,
+        [&](const SparseMappingTree& assignmentTree,
             const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
             const MetricsMap& metricMap,
             const std::vector<DomainId>& changedChildren,
@@ -65,7 +65,7 @@ class LoadBalancingConstraint : public Constraint {
 
  private:
   int32_t calculate(
-      const AssignmentTree& assignmentTree,
+      const SparseMappingTree& assignmentTree,
       const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
       const MetricsMap& metricMap, const std::vector<DomainId>& changedChildren,
       std::pair<Domain, DomainId> node,

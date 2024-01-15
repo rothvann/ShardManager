@@ -7,20 +7,20 @@ namespace psychopomp {
 ExpressionTree::ExpressionTree(
     std::shared_ptr<SolvingState> state, Domain domain,
     const std::vector<DomainId>& treeParents,
-    std::function<int32_t(const AssignmentTree&,
+    std::function<int32_t(const SparseMappingTree&,
                           const std::vector<std::shared_ptr<MovementMap>>&,
                           const MetricsMap&, const std::vector<DomainId>&,
                           std::pair<Domain, DomainId>)>
         calcMetricFunc)
     : state_(state),
-      assignmentTree_(std::make_shared<AssignmentTree>(state_->getShardDomain(),
+      assignmentTree_(std::make_shared<SparseMappingTree>(state_->getShardDomain(),
                                                        state_->getBinDomain())),
       calcMetricFunc_(calcMetricFunc) {
   initializeAssignmentTree(domain, treeParents);
   initializeMetricState();
 }
 
-std::shared_ptr<AssignmentTree> ExpressionTree::getAssignmentTree() const {
+std::shared_ptr<SparseMappingTree> ExpressionTree::getAssignmentTree() const {
   return assignmentTree_;
 }
 
