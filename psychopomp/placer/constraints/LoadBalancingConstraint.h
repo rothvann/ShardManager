@@ -14,8 +14,11 @@ class LoadBalancingConstraint : public Constraint {
         metric_(metric),
         maxDelta_(maxDelta),
         faultWeightMultiplier_(faultWeightMultiplier) {
-    std::vector<std::vector<DomainId>> loadBalancingDomainIdMap = {domainIds};
-    loadBalancingDomain_ = state->addDomain(domain_, loadBalancingDomainIdMap);
+    loadBalancingDomain_ = SolvingState::kDomainLimit;
+    auto partialTree =
+        state_->getAssignmentTree()->createPartialTree(domain, domainIds);
+    partialTree->addMapping(std::make_pair(loadBalancingDomain_, 0), domain, domainIds);
+
     auto minFunc =
         [&](const SparseMappingTree& assignmentTree,
             const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
@@ -39,11 +42,9 @@ class LoadBalancingConstraint : public Constraint {
                        });
     };
     minExpressionTree_ =
-        std::make_shared<ExpressionTree>(state_, loadBalancingDomain_,
-                                         std::vector<DomainId>{0}, minFunc);
+        std::make_shared<ExpressionTree>(state_, partialTree, minFunc);
     maxExpressionTree_ =
-        std::make_shared<ExpressionTree>(state_, loadBalancingDomain_,
-                                         std::vector<DomainId>{0}, maxFunc);
+        std::make_shared<ExpressionTree>(state_, partialTree, maxFunc);
     updateWeights();
     commit();
   }

@@ -23,8 +23,10 @@ class DrainConstraint : public Constraint {
       return calculate(assignmentTree, movementMaps, metricMap, changedChildren,
                        node);
     };
-    expressionTree_ = std::make_shared<ExpressionTree>(state_, domain_,
-                                                       domainIds, func);
+    
+    auto partialTree =
+        state_->getAssignmentTree()->createPartialTree(domain_, domainIds);
+    expressionTree_ = std::make_shared<ExpressionTree>(state_, partialTree, func);
     commit();
   }
 

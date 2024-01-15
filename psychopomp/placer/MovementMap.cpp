@@ -25,12 +25,12 @@ const std::unordered_set<DomainId>& MovementMap::getIncomingShards(
   return binToIncomingShardMap_[binId];
 }
 
-std::optional<DomainId> MovementMap::getNextBin(DomainId shardId) {
+folly::Optional<DomainId> MovementMap::getNextBin(DomainId shardId) {
   if (auto parentBin = shardToNextBinMap_.find(shardId);
       parentBin != shardToNextBinMap_.end()) {
     return parentBin->second;
   }
-  return std::nullopt;
+  return folly::none;
 }
 
 const std::unordered_map<DomainId, DomainId>& MovementMap::getAllMovements() {

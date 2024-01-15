@@ -19,11 +19,11 @@ TEST(TestTree, First) {
     shards.emplace_back(i);
   }
 
-  auto shardInfos = generateShardInfos(numShards, 1);
-  auto binShardMap = mapShardsToBinsEmpty(numBins, numShards);
+  auto shardInfos = std::make_shared<std::vector<MappedShardInfo>>(generateMappedShards(numShards, 1));
+  auto binShardMap = std::make_shared<std::vector<std::vector<DomainId>>>(mapShardsToBinsEmpty(numBins, numShards));
 
-  std::shared_ptr<State> state = std::make_shared<State>(
-      shardInfos, std::vector<size_t>(), std::vector<std::vector<DomainId>>(),
+  std::shared_ptr<SolvingState> state = std::make_shared<SolvingState>(
+      shardInfos, std::vector<size_t>(), std::make_shared<std::vector<std::vector<DomainId>>>(),
       binShardMap);
 
   std::vector<int32_t> metric;

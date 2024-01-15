@@ -6,18 +6,20 @@
 
 namespace psychopomp {
 
-SolvingState::SolvingState(std::shared_ptr<std::vector<MappedShardInfo>> shardInfoVector,
-             const std::vector<size_t> domainSizes,
-             std::shared_ptr<std::vector<std::vector<DomainId>>> binDomainsMapping,
-             std::shared_ptr<std::vector<std::vector<DomainId>>> binShardMapping)
+SolvingState::SolvingState(
+    std::shared_ptr<std::vector<MappedShardInfo>> shardInfoVector,
+    const std::vector<size_t> domainSizes,
+    std::shared_ptr<std::vector<std::vector<DomainId>>> binDomainsMapping,
+    std::shared_ptr<std::vector<std::vector<DomainId>>> binShardMapping)
     : shardDomain_(0),
-      binDomain_(1), 
+      binDomain_(1),
       domainOffset_(2),
       movementMap_(std::make_shared<MovementMap>()),
       shardInfoVector_(shardInfoVector) {
   domainElements_.emplace(shardDomain_, shardInfoVector_->size());
 
-  assignmentTree_ = std::make_shared<SparseMappingTree>(shardDomain_, binDomain_);
+  assignmentTree_ =
+      std::make_shared<SparseMappingTree>(shardDomain_, binDomain_);
   addDomainInternal(binDomain_, shardDomain_, *binShardMapping);
 
   auto childDomain = binDomain_;
@@ -42,8 +44,8 @@ void SolvingState::addDomainInternal(
 
   for (size_t parentId = 0; parentId < parentChildMap.size(); parentId++) {
     const auto& childIdVector = parentChildMap[parentId];
-    assignmentTree_->addMapping({parentDomain, parentId},
-                                {childDomain, childIdVector});
+    assignmentTree_->addMapping({parentDomain, parentId}, childDomain,
+                                childIdVector);
   }
 }
 
@@ -55,7 +57,8 @@ std::shared_ptr<MovementMap> SolvingState::getMovementMap() const {
   return movementMap_;
 }
 
-void SolvingState::addMetric(Metric metric, const std::vector<int32_t>& metricVector) {
+void SolvingState::addMetric(Metric metric,
+                             const std::vector<int32_t>& metricVector) {
   metricVectorMap_.emplace(metric, metricVector);
 }
 
@@ -67,13 +70,13 @@ const MappedShardInfo& SolvingState::getShardInfo(DomainId shardId) const {
   return (*shardInfoVector_)[shardId];
 }
 
-std::optional<DomainId> SolvingState::getBinParentInDomain(
+folly::Optional<DomainId> SolvingState::getBinParentInDomain(
     DomainId binId, Domain parentDomain) const {
   auto* ptr = folly::get_ptr(binDomainsMapping_, binId, parentDomain);
   if (ptr) {
     return *ptr;
   }
-  return std::nullopt;
+  return folly::none;
 }
 
 size_t SolvingState::getDomainSize(Domain domain) const {

@@ -40,7 +40,7 @@ class SolvingState {
 
   const MappedShardInfo& getShardInfo(DomainId shardId) const;
 
-  std::optional<DomainId> getBinParentInDomain(DomainId binId,
+  folly::Optional<DomainId> getBinParentInDomain(DomainId binId,
                                                Domain parentDomain) const;
 
   size_t getDomainSize(Domain domain) const;
@@ -50,6 +50,8 @@ class SolvingState {
   int32_t getShardMetric(Metric metric, DomainId domainId) const;
 
   BinWeightInfo& getBinWeightInfo();
+
+  static const Domain kDomainLimit = 10; 
 
  private:
   void addDomainInternal(

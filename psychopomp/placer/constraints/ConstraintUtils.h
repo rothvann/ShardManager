@@ -79,7 +79,7 @@ int32_t sumOperator(
     std::pair<Domain, DomainId> node, MovementConsistency consistency) {
   auto& domain = node.first;
   auto& domainId = node.second;
-  auto childDomain = assignmentTree.getChildDomain(domain);
+  auto childDomain = *assignmentTree.getChildDomain(domain);
   int64_t val = metricMap.get(domain, domainId).value_or(0);
 
   for (auto child : changedChildren) {

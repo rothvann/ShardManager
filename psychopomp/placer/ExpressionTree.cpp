@@ -5,18 +5,15 @@
 
 namespace psychopomp {
 ExpressionTree::ExpressionTree(
-    std::shared_ptr<SolvingState> state, Domain domain,
-    const std::vector<DomainId>& treeParents,
+    std::shared_ptr<SolvingState> state, std::shared_ptr<SparseMappingTree> assignmentTree,
     std::function<int32_t(const SparseMappingTree&,
                           const std::vector<std::shared_ptr<MovementMap>>&,
                           const MetricsMap&, const std::vector<DomainId>&,
                           std::pair<Domain, DomainId>)>
         calcMetricFunc)
     : state_(state),
-      assignmentTree_(std::make_shared<SparseMappingTree>(state_->getShardDomain(),
-                                                       state_->getBinDomain())),
+      assignmentTree_(assignmentTree),
       calcMetricFunc_(calcMetricFunc) {
-  initializeAssignmentTree(domain, treeParents);
   initializeMetricState();
 }
 
@@ -49,29 +46,6 @@ void ExpressionTree::commitMoves() { metricsMap_.commit(); }
 
 const MetricsMap& ExpressionTree::getMetricsMap() const { return metricsMap_; }
 
-void ExpressionTree::initializeAssignmentTree(
-    Domain domain, const std::vector<DomainId>& treeParents) {
-  std::deque<std::pair<Domain, DomainId>> nodesToAdd;
-  for (auto parentId : treeParents) {
-    nodesToAdd.emplace_back(domain, parentId);
-  }
-
-  auto addChild = [&](Domain childDomain,
-                      const std::vector<DomainId>& childDomainIds) {
-    for (auto domainId : childDomainIds) {
-      nodesToAdd.emplace_back(childDomain, domainId);
-    }
-  };
-
-  while (!nodesToAdd.empty()) {
-    auto& parent = nodesToAdd.front();
-    auto child = state_->getAssignmentTree()->getChildren(
-        parent.first, parent.second, {state_->getMovementMap()});
-    assignmentTree_->addMapping(parent, child);
-    addChild(child.first, child.second);
-    nodesToAdd.pop_front();
-  }
-}
 
 void ExpressionTree::initializeMetricState() {
   auto shardDomain = state_->getShardDomain();

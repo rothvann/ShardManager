@@ -12,7 +12,7 @@ class CommittableMap {
   CommittableMap() = default;
 
   template <typename... Keys>
-  std::optional<Val> get(const Keys&... keys) const {
+  folly::Optional<Val> get(const Keys&... keys) const {
     auto* ptr = folly::get_ptr(canaryMap_, keys...);
     if (!ptr) {
       ptr = folly::get_ptr(committedMap_, keys...);
@@ -20,7 +20,7 @@ class CommittableMap {
     if (ptr) {
       return *ptr;
     }
-    return std::nullopt;
+    return folly::none;
   }
 
   template <typename... Keys>
@@ -41,21 +41,21 @@ class CommittableMap {
   Map& getCommittedMap() { return committedMap_; }
 
   template <typename... Keys>
-  std::optional<Val> getFromCanaryMap(const Keys&... keys) const {
+  folly::Optional<Val> getFromCanaryMap(const Keys&... keys) const {
     auto ptr = folly::get_ptr(canaryMap_, keys...);
     if (ptr) {
       return *ptr;
     }
-    return std::nullopt;
+    return folly::none;
   }
 
   template <typename... Keys>
-  std::optional<Val> getFromCommittedMap(const Keys&... keys) const {
+  folly::Optional<Val> getFromCommittedMap(const Keys&... keys) const {
     auto ptr = folly::get_ptr(committedMap_, keys...);
     if (ptr) {
       return *ptr;
     }
-    return std::nullopt;
+    return folly::none;
   }
 
  private:
@@ -99,7 +99,7 @@ class CommittableKey {
  public:
   CommittableKey() = default;
 
-  std::optional<Val> get() const {
+  folly::Optional<Val> get() const {
     if (canaryVal_) {
       return canaryVal_;
     }
@@ -123,13 +123,13 @@ class CommittableKey {
 
   void clear() { canaryVal_.reset(); }
 
-  std::optional<Val>& getCanaryVal() { return canaryVal_; }
+  folly::Optional<Val>& getCanaryVal() { return canaryVal_; }
 
-  std::optional<Val>& getCommittedVal() { return committedVal_; }
+  folly::Optional<Val>& getCommittedVal() { return committedVal_; }
 
  private:
-  std::optional<Val> canaryVal_;
-  std::optional<Val> committedVal_;
+  folly::Optional<Val> canaryVal_;
+  folly::Optional<Val> committedVal_;
 };
 
 }  // namespace psychopomp

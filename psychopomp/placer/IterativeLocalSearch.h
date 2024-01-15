@@ -67,7 +67,7 @@ class IterativeLocalSearch {
     return committedMoves;
   }
 
-  std::optional<std::shared_ptr<MovementMap>> getMovementForBin(
+  folly::Optional<std::shared_ptr<MovementMap>> getMovementForBin(
       std::shared_ptr<SolvingState> state, std::shared_ptr<MovementMap> committedMoves,
       std::vector<std::shared_ptr<Constraint>> constraints, DomainId binId,
       int64_t& currentWeight) {
@@ -89,7 +89,7 @@ class IterativeLocalSearch {
     }
 
     if (shardsInBin.size() == 0) {
-      return std::nullopt;
+      return folly::none;
     }
 
     for (size_t iter = 0; iter < 10; iter++) {
@@ -123,7 +123,7 @@ class IterativeLocalSearch {
         }
       }
     }
-    return std::nullopt;
+    return folly::none;
   }
 
   void updateWeights(std::vector<std::shared_ptr<Constraint>>& constraints,

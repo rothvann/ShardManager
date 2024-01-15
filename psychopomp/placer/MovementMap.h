@@ -1,11 +1,11 @@
 #pragma once
 
 #include <memory>
-#include <optional>
 #include <unordered_map>
 #include <unordered_set>
 
 #include "psychopomp/Types.h"
+#include "folly/Optional.h"
 
 namespace psychopomp {
 
@@ -19,7 +19,7 @@ class MovementMap {
 
   const std::unordered_set<DomainId>& getIncomingShards(DomainId binId);
 
-  std::optional<DomainId> getNextBin(DomainId shardId);
+  folly::Optional<DomainId> getNextBin(DomainId shardId);
 
   const std::unordered_map<DomainId, DomainId>& getAllMovements();
 

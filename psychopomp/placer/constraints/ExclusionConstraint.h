@@ -24,8 +24,10 @@ class ExclusionConstraint : public Constraint {
             std::pair<Domain, DomainId> node) -> int32_t {
       return addBinCount(assignmentTree, movementMaps, node);
     };
-    expressionTree_ = std::make_shared<ExpressionTree>(
-        state_, state->getShardDomain(), shardIds, func);
+    auto partialTree = state_->getAssignmentTree()->createPartialTree(
+        state->getShardDomain(), shardIds);
+    expressionTree_ =
+        std::make_shared<ExpressionTree>(state_, partialTree, func);
   }
 
  private:

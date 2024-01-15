@@ -21,8 +21,7 @@ function passed in.
 class ExpressionTree {
  public:
   ExpressionTree(
-      std::shared_ptr<SolvingState> state, Domain domain,
-      const std::vector<DomainId>& treeParents,
+      std::shared_ptr<SolvingState> state, std::shared_ptr<SparseMappingTree> assignmentTree,
       std::function<int32_t(const SparseMappingTree&,
                             const std::vector<std::shared_ptr<MovementMap>>&,
                             const MetricsMap&, const std::vector<DomainId>&,

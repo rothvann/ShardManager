@@ -25,8 +25,9 @@ class MetricConstraint : public Constraint {
       return calculate(assignmentTree, movementMaps, metricMap, changedChildren,
                        node);
     };
-    expressionTree_ = std::make_shared<ExpressionTree>(state_, domain_,
-                                                       domainIds, func);
+    auto partialTree =
+        state_->getAssignmentTree()->createPartialTree(domain_, domainIds);
+    expressionTree_ = std::make_shared<ExpressionTree>(state_, partialTree, func);
     commit();
   }
 
@@ -48,8 +49,8 @@ class MetricConstraint : public Constraint {
       const std::vector<std::shared_ptr<MovementMap>>& movementMaps,
       const MetricsMap& metricMap, const std::vector<DomainId>& changedChildren,
       std::pair<Domain, DomainId> node) {
-    auto val = sumOperator(state_, metric_, assignmentTree, movementMaps, metricMap,
-                           changedChildren, node, consistency_);
+    auto val = sumOperator(state_, metric_, assignmentTree, movementMaps,
+                           metricMap, changedChildren, node, consistency_);
     updateWeightIfPossible(node, val);
     return val;
   }

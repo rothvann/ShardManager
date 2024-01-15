@@ -1,17 +1,17 @@
 #include "psychopomp/placer/SparseMappingTree.h"
 
+#include "folly/MapUtil.h"
+
 namespace psychopomp {
 
 SparseMappingTree::SparseMappingTree(Domain shardDomain, Domain binDomain)
     : shardDomain_(shardDomain), binDomain_(binDomain) {}
 
-void SparseMappingTree::addMapping(
-    std::pair<Domain, DomainId> parent,
-    std::pair<Domain, std::vector<DomainId>> children) {
+void SparseMappingTree::addMapping(std::pair<Domain, DomainId> parent,
+                                   Domain childDomain,
+                                   std::vector<DomainId> childrenDomainIds) {
   const auto parentDomain = parent.first;
   const auto parentDomainId = parent.second;
-  const auto childDomain = children.first;
-  const auto& childrenDomainIds = children.second;
 
   auto currentChildIt = parentToChildDomainMap_.find(parentDomain);
   if (currentChildIt != parentToChildDomainMap_.end() &&
@@ -77,19 +77,23 @@ std::pair<Domain, std::vector<DomainId>> SparseMappingTree::getChildren(
                       incomingShards.end());
     }
   }
-  const auto& childDomain = parentToChildDomainMap_.at(domain);
+  auto childDomain = getChildDomain(domain);
+  if (!childDomain) {
+    return {};
+  }
   auto& mappedChildren = parentToChildMap_.at(domain).at(domainId);
   children.insert(children.end(), mappedChildren.begin(), mappedChildren.end());
-  return {childDomain, children};
+  return {*childDomain, children};
 }
 
-std::vector<DomainId>& SparseMappingTree::getChildren(Domain domain,
-                                                   DomainId domainId) {
-  return parentToChildMap_[domain][domainId];
+const std::vector<DomainId>& SparseMappingTree::getChildren(
+    Domain domain, DomainId domainId) const {
+  return folly::get_ref_default(parentToChildMap_, domain, domainId,
+                                noChildrenVector_);
 }
 
-Domain SparseMappingTree::getChildDomain(Domain domain) const {
-  return parentToChildDomainMap_.at(domain);
+folly::Optional<Domain> SparseMappingTree::getChildDomain(Domain domain) const {
+  return folly::get_optional(parentToChildDomainMap_, domain);
 }
 
 std::vector<DomainId> SparseMappingTree::getAllDomainIds(Domain domain) {
@@ -120,4 +124,35 @@ bool SparseMappingTree::doesNodeExist(Domain domain, DomainId domainId) {
   return childIt != childMap.end() || parentIt != parentMap.end();
 }
 
+std::shared_ptr<SparseMappingTree> SparseMappingTree::createPartialTree(
+    Domain domain, const std::vector<DomainId>& treeParents) const {
+  auto partialTree =
+      std::make_shared<SparseMappingTree>(shardDomain_, binDomain_);
+  std::deque<std::pair<Domain, DomainId>> nodesToAdd;
+  for (auto parentId : treeParents) {
+    nodesToAdd.emplace_back(domain, parentId);
+  }
+
+  auto addChild = [&](Domain childDomain,
+                      const std::vector<DomainId>& childDomainIds) {
+    for (auto domainId : childDomainIds) {
+      nodesToAdd.emplace_back(childDomain, domainId);
+    }
+  };
+
+  while (!nodesToAdd.empty()) {
+    auto& parent = nodesToAdd.front();
+    const auto& children = getChildren(parent.first, parent.second);
+    auto childDomain = getChildDomain(parent.first);
+    if (!childDomain) {
+      nodesToAdd.pop_front();
+      continue;
+    }
+    partialTree->addMapping(parent, *childDomain, children);
+    addChild(*childDomain, children);
+    nodesToAdd.pop_front();
+  }
+
+  return partialTree;
+}
 }  // namespace psychopomp
