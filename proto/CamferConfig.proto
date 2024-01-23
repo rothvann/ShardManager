@@ -2,26 +2,9 @@ syntax = "proto3";
 
 package camfer;
 
-message KeyRange {
-    int64 start = 1; // Need to be >= 0
-    int64 end = 2; // Need to be >= 0
-}
-
-message DynamicShardingConfig {
-    KeyRange key_range = 1;
-    int32 initial_shard_count = 2; 
-    int32 redundancy_factor = 3; 
-}
-
-message FixedShardingConfig {
-    int32 redundancy_factor = 1;
-}
-
 message ShardingConfig {
-    oneof sharding_pattern {
-        DynamicShardingConfig dynamic_sharding_config = 1;
-        FixedShardingConfig fixed_sharding_config = 2;
-    }
+    bool is_dynamic = 1;
+    int32 redundancy_factor = 2; 
 }
 
 message GroupsConfig {
