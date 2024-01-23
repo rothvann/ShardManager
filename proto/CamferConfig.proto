@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package camfer;
+
+message KeyRange {
+    int64 start = 1; // Need to be >= 0
+    int64 end = 2; // Need to be >= 0
+}
+
+message DynamicShardingConfig {
+    KeyRange key_range = 1;
+    int32 initial_shard_count = 2; 
+    int32 redundancy_factor = 3; 
+}
+
+message FixedShardingConfig {
+    int32 redundancy_factor = 1;
+}
+
+message ShardingConfig {
+    oneof sharding_pattern {
+        DynamicShardingConfig dynamic_sharding_config = 1;
+        FixedShardingConfig fixed_sharding_config = 2;
+    }
+}
+
+message GroupsConfig {
+    /*
+    Names of groups defining structure from lowest to highest
+    IE ['rack', 'datacenter', 'region']
+    */
+    repeated string groups = 1;
+}
+
+message MetricConfig {
+    /*
+    Names of metrics on machines
+    IE 'cpu', 'memory', 'network_bandwidth'
+    */
+    string metrics = 1;
+    int32 default_value = 2; // Value used for machine when no value is reported
+}
+
+message MeanMaxDeltaBalancingStrategy {
+    string metric = 1;
+    int32 max_delta = 2; // Maximum difference between mean value and max value from machines 
+}
+
+message MinMaxDeltaBalancingStrategy {
+    string metric = 1;
+    int32 max_delta = 2; // Maximum difference between min value and max value from machines
+}
+
+message LoadBalancingConfig {
+    string group = 1; // Group to load balance on
+    oneof LoadBalancingStrategy {
+        MeanMaxDeltaBalancingStrategy mean_max_strategy = 2;
+        MinMaxDeltaBalancingStrategy min_max_strategy = 3;
+    }
+}
+
+message ServiceConfig {
+    ShardingConfig sharding_config = 1;
+    GroupsConfig groups_config = 2;
+    repeated MetricConfig metric_configs = 3;
+    repeated LoadBalancingConfig load_balancing_configs = 4;   
+}

@@ -1,6 +1,6 @@
 genrule(
   name = 'protos',
-  srcs = ['ServiceDiscovery.proto'],
+  srcs = ['ServiceDiscovery.proto', 'CamferConfig.proto'],
   cmd = 'mkdir $OUT && $(exe //external_deps:protoc) --plugin=protoc-gen-cpp-grpc=$(location //external_deps:bin-grpc)/grpc_cpp_plugin --cpp-grpc_out=$OUT --cpp_out=$OUT *.proto',
   out = 'proto'
 )
@@ -40,6 +40,33 @@ cxx_library(
   exported_headers = ['//proto:service_discovery_h', '//proto:service_discovery_grpc_h'],
   deps = [],
   exported_deps = ['//external_deps:protobuf', '//external_deps:grpc'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+genrule(
+  name = 'camfer_config_cc',
+  srcs = ['//proto:protos'],
+  cmd = 'cp $SRCS/CamferConfig.pb.cc $OUT',
+  out = 'CamferConfig.pb.cc',
+)
+
+genrule(
+  name = 'camfer_config_h',
+  srcs = ['//proto:protos'],
+  cmd = 'cp $SRCS/CamferConfig.pb.h $OUT',
+  out = 'CamferConfig.pb.h',
+)
+
+cxx_library(
+  name = 'camfer_config_cpp',
+  srcs = ['//proto:camfer_config_cc',],
+  header_namespace = '',
+  exported_headers = ['//proto:camfer_config_h'],
+  deps = [],
+  exported_deps = ['//external_deps:protobuf'],
   preferred_linkage = 'static',
   visibility = [
     'PUBLIC',

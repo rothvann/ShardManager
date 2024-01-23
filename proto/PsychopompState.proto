@@ -1,0 +1,13 @@
+syntax = 'proto3';
+
+package psychopomp;
+
+message ShardRange {
+    int64 range_start = 1;
+    int64 range_end = 2;
+}
+
+message ShardRangeMapping {
+    repeated ShardRange shard_ranges = 1;
+}
+

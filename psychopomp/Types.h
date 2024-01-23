@@ -48,4 +48,8 @@ enum class RangeState {
 struct RangeJoinInfo {};
 
 struct RangeSplitInfo {};
+
+struct SolvingConfig {
+
+};
 }  // namespace psychopomp

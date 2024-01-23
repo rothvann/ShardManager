@@ -23,7 +23,16 @@ class SolvingManager {
 
   void update(
       ServiceName& svcName,
-      std::unordered_map<BinName, std::vector<std::pair<ShardKey, ShardKey>>>& shardMappings);
+      std::unordered_map<BinName, std::vector<std::pair<ShardKey, ShardKey>>>&
+          shardMappings);
+
+  void populateSolvingConfig(ServiceName& svcName);
+  void populateShardKeyRangeMap(ServiceName& svcName);
+  
+  void mapShardsToKeyRanges(
+      ServiceName& svcName,
+      std::unordered_map<BinName, std::vector<std::pair<ShardKey, ShardKey>>>&
+          shardMappings);
 
   std::shared_ptr<ServiceMappingProvider> mappingProvider_;
   size_t periodMs_;
@@ -33,6 +42,8 @@ class SolvingManager {
 
   std::unordered_map<ServiceName, std::shared_ptr<MovementMap>> movementMaps_;
   std::unordered_map<ServiceName, std::shared_ptr<SolvingState>> solvingStates_;
+
+  std::unordered_map<ServiceName, SolvingConfig> solvingConfig_;
   std::unordered_map<
       ServiceName, std::shared_ptr<std::vector<std::pair<ShardKey, ShardKey>>>>
       shardKeyRangeMappings_;
