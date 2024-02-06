@@ -5,6 +5,7 @@
 #include "psychopomp/ServiceMappingProvider.h"
 #include "psychopomp/placer/IterativeLocalSearch.h"
 #include "psychopomp/placer/SolvingState.h"
+#include "CamferConfig.pb.h"
 
 // Create state
 // Remove finished mutations
@@ -21,14 +22,13 @@ class SolvingManager {
  private:
   void updateAll();
 
-  void update(
-      ServiceName& svcName,
-      std::unordered_map<BinName, std::vector<std::pair<ShardKey, ShardKey>>>&
-          shardMappings);
+  // Stages
+  void populateServiceConfig(std::unordered_set<ServiceName>& serviceNames);
+  void populateShardKeyRangeMap(std::unordered_set<ServiceName>& serviceNames);
+  void createSolvingState(std::unordered_set<ServiceName>& serviceNames);
+  void solve(std::unordered_set<ServiceName>& serviceNames);
+  void outputSolution(std::unordered_set<ServiceName>& serviceNames);
 
-  void populateSolvingConfig(ServiceName& svcName);
-  void populateShardKeyRangeMap(ServiceName& svcName);
-  
   void mapShardsToKeyRanges(
       ServiceName& svcName,
       std::unordered_map<BinName, std::vector<std::pair<ShardKey, ShardKey>>>&
@@ -40,12 +40,15 @@ class SolvingManager {
 
   folly::CPUThreadPoolExecutor threadPool_;
 
-  std::unordered_map<ServiceName, std::shared_ptr<MovementMap>> movementMaps_;
-  std::unordered_map<ServiceName, std::shared_ptr<SolvingState>> solvingStates_;
-
-  std::unordered_map<ServiceName, SolvingConfig> solvingConfig_;
+  std::unordered_map<ServiceName, camfer::ServiceConfig> serviceConfig_;
   std::unordered_map<
       ServiceName, std::shared_ptr<std::vector<std::pair<ShardKey, ShardKey>>>>
       shardKeyRangeMappings_;
+      
+  std::unordered_map<
+      ServiceName, std::unordered_map<BinName, std::vector<ShardInfo>>> binMappings_;
+  std::unordered_map<ServiceName, std::shared_ptr<MovementMap>> movementMaps_;
+  std::unordered_map<ServiceName, std::shared_ptr<SolvingState>> solvingStates_;
+
 };
 }  // namespace psychopomp

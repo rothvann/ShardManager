@@ -63,9 +63,7 @@ class ExclusionConstraint : public Constraint {
   void changeShardRangeCount(DomainId binId, ShardRangeId shardRangeId,
                              int32_t count) {
     auto binParent = state_->getBinParentInDomain(binId, exclusionDomain_);
-    if (!binParent) {
-      return;
-    }
+    
     auto prevCount = shardRangeIdCount_[*binParent][shardRangeId];
     shardRangeIdCount_[*binParent][shardRangeId] += count;
     auto currentCount = prevCount + count;

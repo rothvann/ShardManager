@@ -69,6 +69,7 @@ message ConnectionRequest {
     string service_key = 2;
     string bin_name = 3;
     BinState bin_state = 4;
+    repeated string groups = 5;
 }
 
 message ConnectionResponse {

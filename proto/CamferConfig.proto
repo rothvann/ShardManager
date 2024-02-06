@@ -7,21 +7,36 @@ message ShardingConfig {
     int32 redundancy_factor = 2; 
 }
 
-message GroupsConfig {
-    /*
-    Names of groups defining structure from lowest to highest
-    IE ['rack', 'datacenter', 'region']
-    */
-    repeated string groups = 1;
+message Groups {
+    repeated string groups = 1; 
 }
 
-message MetricConfig {
+message GroupChildren {
+    repeated Groups children = 1;
+}
+
+message GroupsConfig {
     /*
-    Names of metrics on machines
-    IE 'cpu', 'memory', 'network_bandwidth'
+    Names of groups defining structure from highest to lowest
+    IE ['region', 'datacenter', 'rack']
     */
-    string metrics = 1;
-    int32 default_value = 2; // Value used for machine when no value is reported
+    repeated string groups = 1;
+    /* 
+    Tree structure representing topology.
+    IE 
+    'region', ['Region 1'], ['Region2']
+    'datacenter', ['DC1', 'DC2', 'DC3'], ['DC1', 'DC2']
+    'rack', ['R1', 'R2'], ['R1'], ['R1'], ['R1', R2'], ['R1', 'R2']
+    */
+    map<string, GroupChildren> group_mapping = 2;
+}
+
+message MetricsConfig {
+    /*
+    Names of metrics on shards
+    IE ['cpu', 'memory', 'network_bandwidth']
+    */
+    repeated string metrics = 1;
 }
 
 message MeanMaxDeltaBalancingStrategy {
@@ -45,6 +60,6 @@ message LoadBalancingConfig {
 message ServiceConfig {
     ShardingConfig sharding_config = 1;
     GroupsConfig groups_config = 2;
-    repeated MetricConfig metric_configs = 3;
+    MetricsConfig metrics_config = 3;
     repeated LoadBalancingConfig load_balancing_configs = 4;   
 }

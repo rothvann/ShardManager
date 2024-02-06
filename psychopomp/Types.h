@@ -13,10 +13,11 @@ namespace psychopomp {
 typedef size_t Domain;
 typedef size_t DomainId;
 typedef size_t Metric;
+typedef int32_t MetricValue;
 
 typedef std::string BinName;
 typedef std::string ServiceName;
-typedef int64_t ShardKey;
+typedef size_t ShardKey;
 
 struct ShardInfo {
   std::pair<ShardKey, ShardKey> shardRange;
@@ -50,6 +51,6 @@ struct RangeJoinInfo {};
 struct RangeSplitInfo {};
 
 struct SolvingConfig {
-
+  size_t replicationFactor;
 };
 }  // namespace psychopomp
