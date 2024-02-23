@@ -4,6 +4,7 @@
 #include <grpcpp/grpcpp.h>
 
 #include <queue>
+#include <utility>
 
 #include "ServiceDiscovery.grpc.pb.h"
 #include "ServiceDiscovery.pb.h"
@@ -56,7 +57,7 @@ class RequestHandler
   folly::Synchronized<bool> hasAuthenticated;
 
   // State
-  folly::Synchronized<std::map<std::pair<int64_t, int64_t>, ShardRangeStatus>>
-      shardRangeStatus_;
+  folly::Synchronized<std::map<std::pair<int64_t, int64_t>, ShardInfo>>
+      shardRangeInfo_;
 };
 }  // namespace psychopomp

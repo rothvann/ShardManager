@@ -11,7 +11,7 @@ namespace psychopomp {
 class ServiceMappingProvider {
  public:
   virtual std::unordered_map<
-      ServiceName, std::unordered_map<BinName, std::vector<ShardInfo>>>
+      ServiceId, std::unordered_map<BinId, std::vector<ShardInfo>>>
   getServiceMappings() = 0;
 };
 }  // namespace psychopomp

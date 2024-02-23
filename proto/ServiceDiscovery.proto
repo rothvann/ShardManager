@@ -7,8 +7,8 @@ Type Declarations
 */
 
 message ShardRange {
-    int64 range_start = 1;
-    int64 range_end = 2;
+    uint64 start = 1;
+    uint64 end = 2;
 }
 
 enum BinStatus {
@@ -27,9 +27,14 @@ enum ShardRangeStatus {
     SHARD_RANGE_STATUS_DROPPED = 6; 
 }
 
-message ShardRangeInfo {
+message ShardMetrics {
+    map<string, string> metrics = 1;
+}
+
+message ShardInfo {
     ShardRange range = 1;
-    ShardRangeStatus status = 2;
+    ShardMetrics metrics = 2;
+    ShardRangeStatus status = 3;
 }
 
 message ShardUpdateRequest {
@@ -42,9 +47,8 @@ message ShardForwardRequest {
     repeated string next_bins = 2;
 }
 
-message ShardStatusUpdateResponse {
-    repeated ShardRange ranges = 1;
-    repeated ShardRangeStatus statuses = 2;
+message ShardInfoUpdate {
+    repeated ShardInfo shard_infos = 1;
 }
 
 /* Empty */
@@ -52,8 +56,6 @@ message BinStateRequest {
 }
 
 message BinState {
-    repeated ShardRangeInfo shard_range_info = 1;
-    BinStatus status = 2;
 }
  
 /* Empty */
@@ -68,8 +70,9 @@ message ConnectionRequest {
     string service_name = 1;
     string service_key = 2;
     string bin_name = 3;
-    BinState bin_state = 4;
-    repeated string groups = 5;
+    map<string, string> groups = 4;
+    repeated ShardInfo shard_info = 5;
+    BinStatus status = 6;
 }
 
 message ConnectionResponse {
@@ -79,17 +82,16 @@ message ConnectionResponse {
 message ServerMessage {
     oneof message {
         ConnectionResponse connection_response = 1;
-        BinStateRequest bin_state_request = 2;
-        ShardUpdateRequest shard_update_request = 3;
-        ShardForwardRequest shard_forward_request = 4;
+        ShardUpdateRequest shard_update_request = 2;
+        ShardForwardRequest shard_forward_request = 3;
     }
 }
 
 message ClientMessage {
     oneof message {
         ConnectionRequest connection_request = 1;
-        ShardStatusUpdateResponse shard_status_update_response = 2;
-        BinState bin_state = 3;
+        ShardInfoUpdate shard_info_update = 2;
+        BinStatus status = 3;
     }
 }
 

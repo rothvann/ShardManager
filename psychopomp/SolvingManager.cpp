@@ -1,31 +1,11 @@
 #include "psychopomp/SolvingManager.h"
-
+#include "psychopomp/SolvingManagerUtils.h"
 #include <limits>
 
 #include "folly/MapUtil.h"
 
-namespace {
-std::vector<std::pair<psychopomp::ShardKey, psychopomp::ShardKey>>
-generateShardKeyRangeMap(size_t start, size_t end, size_t numShards) {
-  ShardKey range = (end - start) / numShards;
-  if (range <= 0) {
-    // log error
-    return {};
-  }
-  shardKeyRangeMap.reserve(numShards);
-      shardKeyRangeMap.emplace_back(start,
-                                    start + range + ((numShards % range));
-  while (shardKeyRangeMap.back().second < end) {
-    shardKeyRangeMap.emplace_back(shardKeyRangeMap.back().second + 1,
-                                  shardKeyRangeMap.back().second + 1 + range);
-  }
-  return shardKeyRangeMap;
-}
-
-void mapBinAndShards(std::unordered_map<BinName, std::vector<ShardInfo>& binMapping, )
-}  // namespace
-
 namespace psychopomp {
+
 void SolvingManager::updateAll() {
   binMappings_ = mappingProvider_->getServiceMappings();
   for (auto& [service, bins] : binMappings_) {
@@ -35,16 +15,16 @@ void SolvingManager::updateAll() {
 }
 
 void SolvingManager::populateServiceConfig(
-    std::unordered_set<ServiceName>& serviceNames) {
+    std::unordered_set<ServiceId>& serviceIds) {
   // Dummy code
   // Need to retrieve from s3
 }
 
 void SolvingManager::populateShardKeyRangeMap(
-    std::unordered_set<ServiceName>& serviceNames) {
-  for (auto& svcName : serviceNames) {
+    std::unordered_set<ServiceId>& serviceIds) {
+  for (auto& svcId : serviceIds) {
     auto shardKeyRangeMapping =
-        folly::get_default(shardKeyRangeMappings_, svcName, nullptr);
+        folly::get_default(shardKeyRangeMappings_, svcId, nullptr);
 
     // Dummy code
     // Need to retrieve previous map from s3
@@ -52,7 +32,7 @@ void SolvingManager::populateShardKeyRangeMap(
       std::vector<std::pair<ShardKey, ShardKey>> shardKeyRangeMap;
 
       shardKeyRangeMappings_.emplace(
-          svcName, std::make_shared<std::vector<std::pair<ShardKey, ShardKey>>>(
+          svcId, std::make_shared<std::vector<std::pair<ShardKey, ShardKey>>>(
                        generateShardKeyRangeMap(
                            0, std::numeric_limits<int64_t>::max(), 100)));
     }
@@ -60,34 +40,38 @@ void SolvingManager::populateShardKeyRangeMap(
 }
 
 void SolvingManager::createSolvingState(
-    std::unordered_set<ServiceName>& serviceNames) {
+    std::unordered_set<ServiceId>& serviceIds) {
   solvingStates_.clear();
-  solvingStates_.reserve(serviceNames.size());
+  solvingStates_.reserve(serviceIds.size());
 
-  for (auto& svcName : serviceNames) {
+  for (auto& svcId : serviceIds) {
     auto shardKeyRangeMapping =
-        folly::get_default(shardKeyRangeMappings_, svcName, nullptr);
-    auto binMapping = folly::get_ptr(binMappings_, svcName);
+        folly::get_default(shardKeyRangeMappings_, svcId, nullptr);
+    auto binMapping = folly::get_ptr(binMappings_, svcId);
     if (!shardKeyRangeMapping || !binMapping) {
       // log failed
       continue;
     }
 
     // Map all shards
-    auto shardInfoVector = std::make_shared<std::vector<MappedShardInfo>>();
-    auto binMappedShards = std::make_shared<std::vector<std::vector<DomainId>>>(
-        binMapping->size() + 1);
-    
+    auto& binDomainIdMapping = binDomainIdMappings_[svcId];
+    binDomainIdMapping.clear();
+    std::vector<MappedShardInfo> shardInfoVector;
+    std::vector<std::vector<DomainId>> binMappedShards(binMapping->size() + 1);
+
     size_t binCount = 0;
     for (auto& [binName, shardInfos] : *binMapping) {
       binCount++;
-      (*binMappedShards)[binCount].reserve(shardInfos.size());
+      binMappedShards[binCount].reserve(shardInfos.size());
+      binDomainIdMapping[binCount] = binName;
       for (auto& shardInfo : shardInfos) {
+        auto rangePair = std::make_pair<ShardKey, ShardKey>(
+            shardInfo.range().start(), shardInfo.range().end());
         auto closestShard =
             std::lower_bound(shardKeyRangeMapping->begin(),
-                             shardKeyRangeMapping->end(), shardInfo.shardRange);
+                             shardKeyRangeMapping->end(), rangePair);
         if (closestShard == shardKeyRangeMapping->end() ||
-            *closestShard != shardInfo.shardRange) {
+            *closestShard != rangePair) {
           // Log smth mb
           // We ignore
           continue;
@@ -95,15 +79,18 @@ void SolvingManager::createSolvingState(
         MappedShardInfo mappedShardInfo;
         mappedShardInfo.shardRangeId =
             (closestShard - shardKeyRangeMapping->begin());
-        shardInfoVector->push_back(mappedShardInfo);
+        shardInfoVector.push_back(mappedShardInfo);
 
-        (*binMappedShards)[binCount].push_back(shardInfoVector->size());
+        binMappedShards[binCount].push_back(shardInfoVector.size());
       }
     }
 
-    solvingStates_[svcName] = std::make_shared<SolvingState>(
-        shardInfoVector, std::vector<<std::vector<std::vector<DomainId>>>(), std::vector<std::vector<DomainId>>(), binMappedShards,
-        std::vector<std::vector<Metric>>());
+    solvingStates_[svcId] = std::make_shared<SolvingState>(
+        std::make_unique<std::vector<MappedShardInfo>>(
+            std::move(shardInfoVector)),
+        std::make_unique<std::vector<std::vector<DomainId>>>(),
+        std::make_unique<std::vector<std::vector<MetricValue>>>(),
+        std::vector<std::vector<std::vector<DomainId>>>(), binMappedShards);
   }
 }
 }  // namespace psychopomp

@@ -2,7 +2,6 @@
 
 #include <experimental/optional>
 #include <memory>
-#include <optional>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -24,11 +23,11 @@ struct BinWeightInfo {
 class SolvingState {
  public:
   SolvingState(
-      const std::vector<MappedShardInfo>& shardInfoVector,
+      std::unique_ptr<std::vector<MappedShardInfo>> shardInfoVector,
+      std::unique_ptr<std::vector<std::vector<DomainId>>> binDomainsMapping,
+      std::unique_ptr<std::vector<std::vector<MetricValue>>> metricVectors,
       const std::vector<std::vector<std::vector<DomainId>>>& domainMapping,
-      const std::vector<std::vector<DomainId>>& binDomainsMapping,
-      const std::vector<std::vector<DomainId>>& binShardMapping,
-      const std::vector<std::vector<MetricValue>>& metricVectors);
+      const std::vector<std::vector<DomainId>>& binShardMapping);
 
   std::shared_ptr<SparseMappingTree> getAssignmentTree() const;
 
@@ -66,9 +65,9 @@ class SolvingState {
   std::unordered_map<Domain, std::unordered_map<DomainId, DomainId>>
       domainIdMap_;
 
-  const std::vector<MappedShardInfo>& shardInfoVector_;
-  const std::vector<std::vector<DomainId>>& binDomainsMapping_;
-  const std::vector<std::vector<MetricValue>>& metricVectors_;
+  std::unique_ptr<std::vector<MappedShardInfo>> shardInfoVector_;
+  std::unique_ptr<std::vector<std::vector<DomainId>>> binDomainsMapping_;
+  std::unique_ptr<std::vector<std::vector<MetricValue>>> metricVectors_;
 
   std::shared_ptr<SparseMappingTree> assignmentTree_;
 

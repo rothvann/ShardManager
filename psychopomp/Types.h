@@ -15,17 +15,12 @@ typedef size_t DomainId;
 typedef size_t Metric;
 typedef int32_t MetricValue;
 
-typedef std::string BinName;
-typedef std::string ServiceName;
-typedef size_t ShardKey;
-
-struct ShardInfo {
-  std::pair<ShardKey, ShardKey> shardRange;
-  ShardRangeStatus shardStatus;
-};
-
+typedef uint64_t BinId;
+typedef uint64_t ServiceId;
+typedef uint64_t ShardKey;
 typedef size_t ShardRangeId;
 typedef size_t ReplicaId;
+
 struct MappedShardInfo {
   ShardRangeId shardRangeId;
 };

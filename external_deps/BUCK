@@ -792,7 +792,7 @@ filegroup(
 genrule(
   name = 'build-abseil',
   srcs = ['//external_deps:abseil-files'],
-  cmd = '(cd $SRCS/abseil-cpp && cmake . -DBUILD_TESTING=OFF -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native" && make && make install) && cp -r $SRCS/abseil-cpp/out/. $OUT',
+  cmd = '(cd $SRCS/abseil-cpp && cmake . -DBUILD_TESTING=OFF -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native -fPIC" && make && make install) && cp -r $SRCS/abseil-cpp/out/. $OUT',
   out = '.',
   visibility = [
   'PUBLIC',

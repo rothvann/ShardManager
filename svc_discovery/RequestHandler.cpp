@@ -45,7 +45,7 @@ void RequestHandler::handleRead(bool ok, bool& shouldAttemptNext) {
     stop();
     return;
   }
-  
+
   auto& message = getMessage();
 
   if (!hasAuthenticated.copy()) {
@@ -64,6 +64,19 @@ void RequestHandler::handleRead(bool ok, bool& shouldAttemptNext) {
     handlerManager_->registerBin(this, serviceName, binName);
   }
 
+  if (message.has_shard_info_update()) {
+    auto& shardInfos = message.shard_info_update().shard_infos();
+
+    auto shardRangeInfoPtr = shardRangeInfo_.wlock();
+    for (size_t index = 0; index < shardInfos.size(); index++) {
+      auto start = shardInfos[index].range().start();
+      auto end = shardInfos[index].range().end();
+      auto range = std::make_pair(start, end);
+
+      (*shardRangeInfoPtr)[range] = shardInfos[index];
+    }
+  }
+  
   shouldAttemptNext = true;
 };
 

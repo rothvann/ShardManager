@@ -19,22 +19,27 @@ TEST(TestTree, First) {
     shards.emplace_back(i);
   }
 
-  std::vector<MappedShardInfo> shardInfos(generateMappedShards(numShards, 1));
-  std::vector<std::vector<DomainId>> binShardMap(mapShardsToBinsEmpty(numBins, numShards));
+  auto shardInfos = std::make_unique<std::vector<MappedShardInfo>>(
+      generateMappedShards(numShards, 1));
+  std::vector<std::vector<DomainId>> binShardMap =
+      mapShardsToBinsEmpty(numBins, numShards);
   std::vector<std::vector<MetricValue>> metric;
   for (size_t i = 0; i < numShards; i++) {
     metric.emplace_back(std::vector<MetricValue>{1});
   }
 
   std::shared_ptr<SolvingState> state = std::make_shared<SolvingState>(
-      shardInfos,std::vector<std::vector<std::vector<DomainId>>>(), std::vector<std::vector<DomainId>>(),
-      binShardMap, metric);
+      std::move(shardInfos),
+      std::make_unique<std::vector<std::vector<DomainId>>>(),
+      std::make_unique<std::vector<std::vector<MetricValue>>>(
+          std::move(metric)),
+      std::vector<std::vector<std::vector<DomainId>>>(), binShardMap);
 
   std::vector<std::shared_ptr<Constraint>> constraints;
   std::shared_ptr<DrainConstraint> freeConstraint =
       std::make_shared<DrainConstraint>(state, MovementConsistency::AFTER,
-                                         state->getBinDomain(),
-                                         std::vector<DomainId>{0}, 10);
+                                        state->getBinDomain(),
+                                        std::vector<DomainId>{0}, 10);
 
   std::vector<DomainId> domainIds;
   for (size_t i = 1; i <= numBins; i++) {

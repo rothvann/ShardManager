@@ -1,7 +1,6 @@
 #pragma once
 
-#include <experimental/optional>
-
+#include "folly/Optional.h"
 #include "folly/MapUtil.h"
 
 namespace psychopomp {

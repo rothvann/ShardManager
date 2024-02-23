@@ -13,7 +13,6 @@
 // Add mutations
 
 namespace psychopomp {
-
 class SolvingManager {
  public:
   SolvingManager(std::shared_ptr<ServiceMappingProvider> mappingProvider,
@@ -23,15 +22,15 @@ class SolvingManager {
   void updateAll();
 
   // Stages
-  void populateServiceConfig(std::unordered_set<ServiceName>& serviceNames);
-  void populateShardKeyRangeMap(std::unordered_set<ServiceName>& serviceNames);
-  void createSolvingState(std::unordered_set<ServiceName>& serviceNames);
-  void solve(std::unordered_set<ServiceName>& serviceNames);
-  void outputSolution(std::unordered_set<ServiceName>& serviceNames);
+  void populateServiceConfig(std::unordered_set<ServiceId>& serviceIds);
+  void populateShardKeyRangeMap(std::unordered_set<ServiceId>& serviceIds);
+  void createSolvingState(std::unordered_set<ServiceId>& serviceIds);
+  void solve(std::unordered_set<ServiceId>& serviceIds);
+  void outputSolution(std::unordered_set<ServiceId>& serviceIds);
 
   void mapShardsToKeyRanges(
-      ServiceName& svcName,
-      std::unordered_map<BinName, std::vector<std::pair<ShardKey, ShardKey>>>&
+      ServiceId& svcId,
+      std::unordered_map<BinId, std::vector<std::pair<ShardKey, ShardKey>>>&
           shardMappings);
 
   std::shared_ptr<ServiceMappingProvider> mappingProvider_;
@@ -40,15 +39,16 @@ class SolvingManager {
 
   folly::CPUThreadPoolExecutor threadPool_;
 
-  std::unordered_map<ServiceName, camfer::ServiceConfig> serviceConfig_;
+  std::unordered_map<ServiceId, camfer::ServiceConfig> serviceConfig_;
   std::unordered_map<
-      ServiceName, std::shared_ptr<std::vector<std::pair<ShardKey, ShardKey>>>>
+      ServiceId, std::shared_ptr<std::vector<std::pair<ShardKey, ShardKey>>>>
       shardKeyRangeMappings_;
       
   std::unordered_map<
-      ServiceName, std::unordered_map<BinName, std::vector<ShardInfo>>> binMappings_;
-  std::unordered_map<ServiceName, std::shared_ptr<MovementMap>> movementMaps_;
-  std::unordered_map<ServiceName, std::shared_ptr<SolvingState>> solvingStates_;
+      ServiceId, std::unordered_map<BinId, std::vector<ShardInfo>>> binMappings_;
+  std::unordered_map<ServiceId, std::unordered_map<DomainId, BinId>> binDomainIdMappings_;
+  std::unordered_map<ServiceId, std::shared_ptr<MovementMap>> movementMaps_;
+  std::unordered_map<ServiceId, std::shared_ptr<SolvingState>> solvingStates_;
 
 };
 }  // namespace psychopomp
