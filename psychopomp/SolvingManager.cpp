@@ -3,7 +3,6 @@
 #include <limits>
 
 #include "folly/MapUtil.h"
-#include "psychopomp/NodeMapper.h"
 #include "psychopomp/SolvingManagerUtils.h"
 
 namespace psychopomp {
@@ -55,25 +54,16 @@ void SolvingManager::createSolvingState(
       continue;
     }
 
+    auto& svcConfig = serviceConfig_[svcId];
     // Map all shards
-    auto& binDomainIdMapping = binDomainIdMappings_[svcId];
-    binDomainIdMapping.clear();
-    std::vector<MappedShardInfo> shardInfoVector;
-    std::vector<std::vector<DomainId>> binMappedShards(binMapping->size() + 1);
-
-    size_t binCount = 0;
-    for (auto& [binName, shardInfos] : *binMapping) {
-      binCount++;
-      binMappedShards[binCount].reserve(shardInfos.size());
-      binDomainIdMapping[binCount] = binName;
-    }
+    auto nodeMapper = std::make_shared<NodeMapper>(
+        svcConfig.node_config(), svcConfig.metric_config(), *binMapping,
+        *shardKeyRangeMapping);
+    nodeMappers_[svcId] = nodeMapper;
 
     solvingStates_[svcId] = std::make_shared<SolvingState>(
-        std::make_unique<std::vector<MappedShardInfo>>(
-            std::move(shardInfoVector)),
-        std::make_unique<std::vector<std::vector<DomainId>>>(),
-        std::make_unique<std::vector<std::vector<MetricValue>>>(),
-        std::vector<std::vector<std::vector<DomainId>>>(), binMappedShards);
+        nodeMapper->getMappedShardInfoVector(), nodeMapper->getMetricVectors(),
+        nodeMapper->getNodeMapping());
   }
 }
 }  // namespace psychopomp

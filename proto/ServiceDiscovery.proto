@@ -28,7 +28,7 @@ enum ShardRangeStatus {
 }
 
 message ShardMetrics {
-    map<string, string> metrics = 1;
+    map<string, uint32> metrics = 1;
 }
 
 message ShardInfo {

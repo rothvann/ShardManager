@@ -2,10 +2,11 @@
 
 #include <chrono>
 
+#include "CamferConfig.pb.h"
+#include "psychopomp/NodeMapper.h"
 #include "psychopomp/ServiceMappingProvider.h"
 #include "psychopomp/placer/IterativeLocalSearch.h"
 #include "psychopomp/placer/SolvingState.h"
-#include "CamferConfig.pb.h"
 
 // Create state
 // Remove finished mutations
@@ -43,12 +44,12 @@ class SolvingManager {
   std::unordered_map<
       ServiceId, std::shared_ptr<std::vector<std::pair<ShardKey, ShardKey>>>>
       shardKeyRangeMappings_;
-      
-  std::unordered_map<
-      ServiceId, std::unordered_map<BinId, std::vector<ShardInfo>>> binMappings_;
-  std::unordered_map<ServiceId, std::unordered_map<DomainId, BinId>> binDomainIdMappings_;
-  std::unordered_map<ServiceId, std::shared_ptr<MovementMap>> movementMaps_;
-  std::unordered_map<ServiceId, std::shared_ptr<SolvingState>> solvingStates_;
 
+  std::unordered_map<ServiceId,
+                     std::unordered_map<BinId, BinInfo>>
+      binMappings_;
+  std::unordered_map<ServiceId, std::shared_ptr<MovementMap>> movementMaps_;
+  std::unordered_map<ServiceId, std::shared_ptr<NodeMapper>> nodeMappers_;
+  std::unordered_map<ServiceId, std::shared_ptr<SolvingState>> solvingStates_;
 };
 }  // namespace psychopomp
