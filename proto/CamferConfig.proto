@@ -11,6 +11,10 @@ message NodeChildren {
     repeated string nodes = 1;
 }
 
+message NodeChildrenVector {
+    repeated NodeChildren children = 1;
+}
+
 message NodeConfig {
     /*
     Names of groups defining structure from highest to lowest
@@ -20,11 +24,11 @@ message NodeConfig {
     /* 
     Tree structure representing topology.
     IE 
-    'region', ['Region 1'], ['Region2']
+    'region', ['Region 1', 'Region2']
     'datacenter', ['DC1', 'DC2', 'DC3'], ['DC1', 'DC2']
     'rack', ['R1', 'R2'], ['R1'], ['R1'], ['R1', R2'], ['R1', 'R2']
     */
-    map<string, NodeChildren> node_children = 2;
+    map<string, NodeChildrenVector> node_children_vector = 2;
 }
 
 message MetricConfig {

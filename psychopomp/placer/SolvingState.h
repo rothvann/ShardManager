@@ -23,11 +23,10 @@ struct BinWeightInfo {
 class SolvingState {
  public:
   SolvingState(
-      std::unique_ptr<std::vector<MappedShardInfo>> shardInfoVector,
-      std::unique_ptr<std::vector<std::vector<DomainId>>> binDomainsMapping,
-      std::unique_ptr<std::vector<std::vector<MetricValue>>> metricVectors,
-      const std::vector<std::vector<std::vector<DomainId>>>& domainMapping,
-      const std::vector<std::vector<DomainId>>& binShardMapping);
+      std::shared_ptr<std::vector<MappedShardInfo>> shardInfoVector,
+      std::shared_ptr<std::vector<std::vector<MetricValue>>> metricVectors,
+      std::shared_ptr<std::vector<std::vector<std::vector<DomainId>>>>
+          domainMapping);
 
   std::shared_ptr<SparseMappingTree> getAssignmentTree() const;
 
@@ -37,8 +36,6 @@ class SolvingState {
   Domain getBinDomain() const;
 
   const MappedShardInfo& getShardInfo(DomainId shardId) const;
-
-  DomainId getBinParentInDomain(DomainId binId, Domain parentDomain) const;
 
   size_t getDomainSize(Domain domain) const;
 
@@ -65,9 +62,8 @@ class SolvingState {
   std::unordered_map<Domain, std::unordered_map<DomainId, DomainId>>
       domainIdMap_;
 
-  std::unique_ptr<std::vector<MappedShardInfo>> shardInfoVector_;
-  std::unique_ptr<std::vector<std::vector<DomainId>>> binDomainsMapping_;
-  std::unique_ptr<std::vector<std::vector<MetricValue>>> metricVectors_;
+  std::shared_ptr<std::vector<MappedShardInfo>> shardInfoVector_;
+  std::shared_ptr<std::vector<std::vector<MetricValue>>> metricVectors_;
 
   std::shared_ptr<SparseMappingTree> assignmentTree_;
 

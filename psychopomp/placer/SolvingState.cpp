@@ -7,27 +7,24 @@
 namespace psychopomp {
 
 SolvingState::SolvingState(
-    std::unique_ptr<std::vector<MappedShardInfo>> shardInfoVector,
-    std::unique_ptr<std::vector<std::vector<DomainId>>> binDomainsMapping,
-    std::unique_ptr<std::vector<std::vector<MetricValue>>> metricVectors,
-    const std::vector<std::vector<std::vector<DomainId>>>& domainMapping,
-    const std::vector<std::vector<DomainId>>& binShardMapping)
+    std::shared_ptr<std::vector<MappedShardInfo>> shardInfoVector,
+    std::shared_ptr<std::vector<std::vector<MetricValue>>> metricVectors,
+    std::shared_ptr<std::vector<std::vector<std::vector<DomainId>>>>
+        domainMapping)
     : shardDomain_(0),
       binDomain_(1),
       domainOffset_(2),
-      shardInfoVector_(std::move(shardInfoVector)),
-      binDomainsMapping_(std::move(binDomainsMapping)),
-      metricVectors_(std::move(metricVectors)) {
+      shardInfoVector_(shardInfoVector),
+      metricVectors_(metricVectors) {
   domainElements_.emplace(shardDomain_, shardInfoVector_->size());
 
   assignmentTree_ =
       std::make_shared<SparseMappingTree>(shardDomain_, binDomain_);
-  addDomainInternal(binDomain_, shardDomain_, binShardMapping);
 
-  auto childDomain = binDomain_;
-  auto numBins = binShardMapping.size();
-  for (size_t domain = 0; domain < domainMapping.size(); domain++) {
-    addDomainInternal(domain + domainOffset_, domain + domainOffset_ - 1, domainMapping[domain]);
+  auto childDomain = shardDomain_;
+  for (size_t domain = 0; domain < domainMapping->size(); domain++) {
+    auto parentDomain = domain + 1;
+    addDomainInternal(parentDomain, domain, (*domainMapping)[domain]);
   }
 }
 
@@ -59,11 +56,6 @@ const MappedShardInfo& SolvingState::getShardInfo(DomainId shardId) const {
   return (*shardInfoVector_)[shardId];
 }
 
-DomainId SolvingState::getBinParentInDomain(
-    DomainId binId, Domain parentDomain) const {
-  return (*binDomainsMapping_)[binId][parentDomain];
-}
-
 size_t SolvingState::getDomainSize(Domain domain) const {
   return folly::get_default(domainElements_, domain, 0);
 }
@@ -73,7 +65,7 @@ std::vector<MetricValue> SolvingState::getMetric(Metric metric) const {
 }
 
 int32_t SolvingState::getShardMetric(Metric metric, DomainId domainId) const {
-  return(*metricVectors_)[metric][domainId];
+  return (*metricVectors_)[metric][domainId];
 }
 
 BinWeightInfo& SolvingState::getBinWeightInfo() { return binWeightInfo_; }

@@ -10,23 +10,26 @@ namespace psychopomp {
 namespace {
 class NodeTrie {
  public:
-  NodeTrie& addNode(const std::string& node, DomainId domainId,
-                     Domain domain) {
+  NodeTrie& addNode(const std::string& node, DomainId domainId, Domain domain) {
     auto& child = children_[node];
     child.domain_ = domain;
     child.domainId_ = domainId;
   }
 
-  folly::Optional<std::pair<Domain, DomainId>> getDomainPair(
-      std::vector<std::string>& node) {
+  folly::Optional<std::vector<std::pair<Domain, DomainId>>> getDomainPairs(
+      std::vector<std::string>& nodes) {
+    std::vector<std::pair<Domain, DomainId>> pairVec;
+    pairVec.reserve(nodes.size());
+
     auto* currentNode = this;
-    for (auto& node : node) {
+    for (auto& node : nodes) {
       currentNode = folly::get_ptr(currentNode->children_, node);
       if (!currentNode) {
         return folly::none;
       }
+      pairVec.emplace_back(currentNode->domain_, currentNode->domainId_);
     }
-    return std::make_pair(currentNode->domain_, currentNode->domainId_);
+    return pairVec;
   }
 
  private:
@@ -40,20 +43,25 @@ class NodeMapper {
  public:
   NodeMapper(
       const camfer::NodeConfig& nodeConfig,
-      const std::unordered_map<BinId, std::vector<ShardInfo>>& binMapping,
-      std::shared_ptr<std::vector<std::pair<ShardKey, ShardKey>>>
-          shardKeyRangeMapping) {
-    // Create bin mapping
-    size_t binCount = 0;
-    for (auto& [binId, shardInfos] : binMapping) {
-      binCount++;
-      binDomainIdMapping_[binCount] = binId;
-      domainIdBinMapping_[binId] = binCount;
+      const std::unordered_map<BinId, BinInfo>& binMapping,
+      const std::vector<std::pair<ShardKey, ShardKey>>& shardKeyRangeMapping)
+      : mappedShardInfos_(std::make_shared<std::vector<MappedShardInfo>>()),
+        metricVectors_(
+            std::make_shared<std::vector<std::vector<MetricValue>>>()),
+        nodeMapping_(std::make_shared<
+                     std::vector<std::vector<std::vector<DomainId>>>>()) {
+    auto& levels = nodeConfig.node_levels();
+    auto& nodeChildrenVector = nodeConfig.node_children_vector();
+    nodeMapping_->resize(levels.size() + 2);
+    for (size_t levelIndex = 0; levelIndex < levels.size(); levelIndex++) {
+      (*nodeMapping_)[levelIndex].resize(
+          nodeChildrenVector.at(levelIndex).children().size());
     }
 
-    // Create node mapping
     std::unordered_map<size_t, size_t> levelToIndexMap;
-    addLevelsMapping(nodeConfig, levelToIndexMap, 0, nodeTrie_);
+    addLevelMapping(nodeConfig, levelToIndexMap, nodeTrie_, 0);
+
+    createNodeMapping(binMapping, shardKeyRangeMapping);
   }
 
   folly::Optional<DomainId> getDomainId(BinId binName) {
@@ -64,27 +72,82 @@ class NodeMapper {
     return folly::get_optional(binDomainIdMapping_, domainId);
   }
 
-  folly::Optional<std::pair<Domain, DomainId>> getDomainPair(
-      std::vector<std::string> groups) {
-    return nodeTrie_.getDomainPair(groups);
-  }
+  std::shared_ptr<std::vector<MappedShardInfo>> getMappedShardInfoVector() {}
+
+  std::shared_ptr<std::vector<std::vector<MetricValue>>> getMetricVectors() {}
+
+  std::shared_ptr<std::vector<std::vector<std::vector<DomainId>>>>
+  getNodeMapping() {}
 
  private:
-  void addLevelsMapping(const camfer::NodeConfig& groupsConfig,
+  void addLevelMapping(const camfer::NodeConfig& nodeConfig,
                         std::unordered_map<size_t, size_t>& levelToIndexMap,
-                        size_t levelIndex, NodeTrie& nodeTrie) {
-    auto& nodeChildren = groupsConfig.node_children();
-    auto& levels = groupsConfig.node_levels();
-    auto addLevels = [&](size_t levelIndex, NodeTrie& nodeTrie) {
-      auto& level = levels[levelIndex];
-      for (auto& node : nodeChildren.at(level).nodes()) {
-        auto& nextNode = nodeTrie.addNode(node, levelIndex + 1,
-                                           ++levelToIndexMap[levelIndex]);
-        addLevelsMapping(groupsConfig, levelToIndexMap, levelIndex + 1,
-                         nextNode);
-      }
-    };
+                        NodeTrie& nodeTrie, size_t levelIndex) {
+    auto& levels = nodeConfig.node_levels();
+    if (levelIndex >= levels.size()) {
+      return;
+    }
+    auto& level = levels[levelIndex];
+    auto childrenIndex = levelIndex <= 0 ? 0 : levelToIndexMap[levelIndex - 1];
+    auto& nodeChildrenVector = nodeConfig.node_children_vector();
+    auto& nodes =
+        nodeChildrenVector.at(level).children().at(childrenIndex).nodes();
+
+    for (auto& node : nodes) {
+      auto& nextNode = nodeTrie.addNode(node, levelIndex + 1,
+                                        levelToIndexMap[levelIndex] + 1);
+      (*nodeMapping_)[levelIndex][childrenIndex].push_back(
+          levelToIndexMap[levelIndex] + 1);
+      addLevelMapping(nodeConfig, levelToIndexMap, nextNode, levelIndex + 1);
+      levelToIndexMap[levelIndex]++;
+    }
   }
+
+  void createMetricMapping(const camfer::MetricConfig& metricConfig) {
+
+  }
+
+  void createNodeMapping(
+      const std::unordered_map<BinId, BinInfo>& binMapping,
+      const std::vector<std::pair<ShardKey, ShardKey>>& shardKeyRangeMapping) {
+    // Create bin mapping
+    size_t binCount = 0;
+    for (auto& [binId, binInfo] : binMapping) {
+      binCount++;
+      binDomainIdMapping_[binCount] = binId;
+      domainIdBinMapping_[binId] = binCount;
+
+      std::vector<DomainId> shardsInBin;
+
+      // Create shard info
+      for (auto& shardInfo : binInfo.shardInfos) {
+        auto rangePair = std::make_pair<ShardKey, ShardKey>(
+            shardInfo.range().start(), shardInfo.range().end());
+        auto closestShard =
+            std::lower_bound(shardKeyRangeMapping.begin(),
+                             shardKeyRangeMapping.end(), rangePair);
+        if (closestShard == shardKeyRangeMapping.end() ||
+            *closestShard != rangePair) {
+          // Log smth mb
+          // We ignore
+          continue;
+        }
+        MappedShardInfo mappedShardInfo;
+        mappedShardInfo.shardRangeId =
+            (closestShard - shardKeyRangeMapping.begin());
+        mappedShardInfos_->push_back(mappedShardInfo);
+
+        shardsInBin.push_back(mappedShardInfos_->size() - 1);
+
+        
+      }
+      // Create shard metric info
+      // Map bin to nodes in map
+    }
+  }
+  std::shared_ptr<std::vector<MappedShardInfo>> mappedShardInfos_;
+  std::shared_ptr<std::vector<std::vector<MetricValue>>> metricVectors_;
+  std::shared_ptr<std::vector<std::vector<std::vector<DomainId>>>> nodeMapping_;
 
   std::unordered_map<DomainId, BinId> binDomainIdMapping_;
   std::unordered_map<BinId, DomainId> domainIdBinMapping_;

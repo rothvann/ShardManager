@@ -66,25 +66,6 @@ void SolvingManager::createSolvingState(
       binCount++;
       binMappedShards[binCount].reserve(shardInfos.size());
       binDomainIdMapping[binCount] = binName;
-      for (auto& shardInfo : shardInfos) {
-        auto rangePair = std::make_pair<ShardKey, ShardKey>(
-            shardInfo.range().start(), shardInfo.range().end());
-        auto closestShard =
-            std::lower_bound(shardKeyRangeMapping->begin(),
-                             shardKeyRangeMapping->end(), rangePair);
-        if (closestShard == shardKeyRangeMapping->end() ||
-            *closestShard != rangePair) {
-          // Log smth mb
-          // We ignore
-          continue;
-        }
-        MappedShardInfo mappedShardInfo;
-        mappedShardInfo.shardRangeId =
-            (closestShard - shardKeyRangeMapping->begin());
-        shardInfoVector.push_back(mappedShardInfo);
-
-        binMappedShards[binCount].push_back(shardInfoVector.size());
-      }
     }
 
     solvingStates_[svcId] = std::make_shared<SolvingState>(
