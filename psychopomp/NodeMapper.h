@@ -8,9 +8,9 @@
 
 namespace psychopomp {
 namespace {
-class NodesTrie {
+class NodeTrie {
  public:
-  NodesTrie& addNode(const std::string& node, DomainId domainId,
+  NodeTrie& addNode(const std::string& node, DomainId domainId,
                      Domain domain) {
     auto& child = children_[node];
     child.domain_ = domain;
@@ -18,9 +18,9 @@ class NodesTrie {
   }
 
   folly::Optional<std::pair<Domain, DomainId>> getDomainPair(
-      std::vector<std::string>& nodes) {
+      std::vector<std::string>& node) {
     auto* currentNode = this;
-    for (auto& node : nodes) {
+    for (auto& node : node) {
       currentNode = folly::get_ptr(currentNode->children_, node);
       if (!currentNode) {
         return folly::none;
@@ -30,16 +30,16 @@ class NodesTrie {
   }
 
  private:
-  std::unordered_map<std::string, NodesTrie> children_;
+  std::unordered_map<std::string, NodeTrie> children_;
   Domain domain_;
   DomainId domainId_;
 };
 }  // namespace
 
-class DomainMapper {
+class NodeMapper {
  public:
-  DomainMapper(
-      const camfer::NodesConfig& nodesConfig,
+  NodeMapper(
+      const camfer::NodeConfig& nodeConfig,
       const std::unordered_map<BinId, std::vector<ShardInfo>>& binMapping,
       std::shared_ptr<std::vector<std::pair<ShardKey, ShardKey>>>
           shardKeyRangeMapping) {
@@ -51,9 +51,9 @@ class DomainMapper {
       domainIdBinMapping_[binId] = binCount;
     }
 
-    // Create nodes mapping
+    // Create node mapping
     std::unordered_map<size_t, size_t> levelToIndexMap;
-    addLevelsMapping(nodesConfig, levelToIndexMap, 0, nodesTrie_);
+    addLevelsMapping(nodeConfig, levelToIndexMap, 0, nodeTrie_);
   }
 
   folly::Optional<DomainId> getDomainId(BinId binName) {
@@ -66,19 +66,19 @@ class DomainMapper {
 
   folly::Optional<std::pair<Domain, DomainId>> getDomainPair(
       std::vector<std::string> groups) {
-    return nodesTrie_.getDomainPair(groups);
+    return nodeTrie_.getDomainPair(groups);
   }
 
  private:
-  void addLevelsMapping(const camfer::NodesConfig& groupsConfig,
+  void addLevelsMapping(const camfer::NodeConfig& groupsConfig,
                         std::unordered_map<size_t, size_t>& levelToIndexMap,
-                        size_t levelIndex, NodesTrie& nodesTrie) {
+                        size_t levelIndex, NodeTrie& nodeTrie) {
     auto& nodeChildren = groupsConfig.node_children();
     auto& levels = groupsConfig.node_levels();
-    auto addLevels = [&](size_t levelIndex, NodesTrie& nodesTrie) {
+    auto addLevels = [&](size_t levelIndex, NodeTrie& nodeTrie) {
       auto& level = levels[levelIndex];
       for (auto& node : nodeChildren.at(level).nodes()) {
-        auto& nextNode = nodesTrie.addNode(node, levelIndex + 1,
+        auto& nextNode = nodeTrie.addNode(node, levelIndex + 1,
                                            ++levelToIndexMap[levelIndex]);
         addLevelsMapping(groupsConfig, levelToIndexMap, levelIndex + 1,
                          nextNode);
@@ -88,6 +88,6 @@ class DomainMapper {
 
   std::unordered_map<DomainId, BinId> binDomainIdMapping_;
   std::unordered_map<BinId, DomainId> domainIdBinMapping_;
-  NodesTrie nodesTrie_;
+  NodeTrie nodeTrie_;
 };
 }  // namespace psychopomp

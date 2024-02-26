@@ -1,8 +1,10 @@
 #include "psychopomp/SolvingManager.h"
-#include "psychopomp/SolvingManagerUtils.h"
+
 #include <limits>
 
 #include "folly/MapUtil.h"
+#include "psychopomp/NodeMapper.h"
+#include "psychopomp/SolvingManagerUtils.h"
 
 namespace psychopomp {
 
@@ -33,8 +35,8 @@ void SolvingManager::populateShardKeyRangeMap(
 
       shardKeyRangeMappings_.emplace(
           svcId, std::make_shared<std::vector<std::pair<ShardKey, ShardKey>>>(
-                       generateShardKeyRangeMap(
-                           0, std::numeric_limits<int64_t>::max(), 100)));
+                     generateShardKeyRangeMap(
+                         0, std::numeric_limits<int64_t>::max(), 100)));
     }
   }
 }

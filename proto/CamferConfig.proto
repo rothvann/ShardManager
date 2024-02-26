@@ -11,7 +11,7 @@ message NodeChildren {
     repeated string nodes = 1;
 }
 
-message NodesConfig {
+message NodeConfig {
     /*
     Names of groups defining structure from highest to lowest
     IE ['region', 'datacenter', 'rack']
@@ -27,7 +27,7 @@ message NodesConfig {
     map<string, NodeChildren> node_children = 2;
 }
 
-message MetricsConfig {
+message MetricConfig {
     /*
     Names of metrics on shards
     IE ['cpu', 'memory', 'network_bandwidth']
@@ -55,7 +55,7 @@ message LoadBalancingConfig {
 
 message ServiceConfig {
     ShardingConfig sharding_config = 1;
-    NodesConfig nodes_config = 2;
-    MetricsConfig metrics_config = 3;
+    NodeConfig node_config = 2;
+    MetricConfig metric_config = 3;
     repeated LoadBalancingConfig load_balancing_configs = 4;   
 }

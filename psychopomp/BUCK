@@ -13,6 +13,7 @@ cxx_library(
     name = 'solving',
     srcs = ['SolvingManager.cpp'],
     exported_headers = [
+        'NodeMapper.h',
         'ServiceMappingProvider.h',
         'SolvingManager.h',
         'SolvingManagerUtils.h'
