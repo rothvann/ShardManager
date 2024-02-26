@@ -67,9 +67,9 @@ message HeartBeatRequest {
 }
 
 message ConnectionRequest {
-    string service_name = 1;
+    uint64 service_id = 1;
     string service_key = 2;
-    string bin_name = 3;
+    uint64 bin_id = 3;
     map<string, string> groups = 4;
     repeated ShardInfo shard_info = 5;
     BinStatus status = 6;

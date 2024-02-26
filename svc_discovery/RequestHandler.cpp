@@ -55,13 +55,13 @@ void RequestHandler::handleRead(bool ok, bool& shouldAttemptNext) {
       stop();
     }
     // Authenticate
-    auto& binName = message.connection_request().bin_name();
-    auto& serviceName = message.connection_request().service_name();
+    auto binId = message.connection_request().bin_id();
+    auto serviceId = message.connection_request().service_id();
     auto& serviceKey = message.connection_request().service_key();
-    std::cout << "Bin: " << binName << " Service: " << serviceName
+    std::cout << "Bin: " << binId << " Service: " << serviceId
               << " Key: " << serviceKey << std::endl;
 
-    handlerManager_->registerBin(this, serviceName, binName);
+    handlerManager_->registerBin(this, serviceId, binId);
   }
 
   if (message.has_shard_info_update()) {
@@ -76,7 +76,7 @@ void RequestHandler::handleRead(bool ok, bool& shouldAttemptNext) {
       (*shardRangeInfoPtr)[range] = shardInfos[index];
     }
   }
-  
+
   shouldAttemptNext = true;
 };
 

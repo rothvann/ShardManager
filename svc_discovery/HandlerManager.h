@@ -32,13 +32,12 @@ class HandlerManager
   std::shared_ptr<RequestHandler> getRequestHandler(RequestHandler* tag);
   void removeRequestHandler(RequestHandler* tag);
 
-  virtual std::unordered_map<
-      ServiceName, std::unordered_map<BinName, std::vector<ShardInfo>>>
+  virtual std::unordered_map<ServiceId,
+                             std::unordered_map<BinId, std::vector<ShardInfo>>>
   getServiceMappings() override;
 
-  void registerBin(RequestHandler* tag, std::string serviceName,
-                   std::string binName);
-  void removeBin(std::string serviceName, std::string binName);
+  void registerBin(RequestHandler* tag, ServiceId serviceId, BinId binId);
+  void removeBin(ServiceId serviceId, BinId binId);
 
  private:
   folly::Synchronized<
@@ -46,8 +45,8 @@ class HandlerManager
       requestHandlerMap_;
 
   folly::Synchronized<std::unordered_map<
-      std::string,
-      std::unordered_map<std::string, std::shared_ptr<RequestHandler>>>>
+      ServiceId,
+      std::unordered_map<BinId, std::shared_ptr<RequestHandler>>>>
       serviceConnectionsMap_;
 };
 }  // namespace psychopomp

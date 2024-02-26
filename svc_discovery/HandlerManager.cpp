@@ -42,8 +42,8 @@ void HandlerManager::removeRequestHandler(RequestHandler* tag) {
   handlerMap->erase(tag);
 }
 
-void HandlerManager::registerBin(RequestHandler* tag, std::string serviceName,
-                                 std::string binName) {
+void HandlerManager::registerBin(RequestHandler* tag, ServiceId serviceId,
+                                 BinId binName) {
   std::shared_ptr<RequestHandler> requestHandler = getRequestHandler(tag);
   if (!requestHandler) {
     // log error;
@@ -51,21 +51,19 @@ void HandlerManager::registerBin(RequestHandler* tag, std::string serviceName,
   }
 
   auto connectionsMap = serviceConnectionsMap_.wlock();
-  (*connectionsMap)[serviceName].emplace(binName, requestHandler);
+  (*connectionsMap)[serviceId].emplace(binName, requestHandler);
 }
 
-void HandlerManager::removeBin(std::string serviceName, std::string binName) {
+void HandlerManager::removeBin(ServiceId serviceId, BinId binName) {
   auto connectionsMap = serviceConnectionsMap_.wlock();
-  (*connectionsMap)[serviceName].erase(binName);
-  if ((*connectionsMap)[serviceName].empty()) {
-    (*connectionsMap).erase(serviceName);
+  (*connectionsMap)[serviceId].erase(binName);
+  if ((*connectionsMap)[serviceId].empty()) {
+    (*connectionsMap).erase(serviceId);
   }
 }
 
-std::unordered_map<
-      ServiceName, std::unordered_map<BinName, std::vector<ShardInfo>>>
+std::unordered_map<ServiceId, std::unordered_map<BinId, std::vector<ShardInfo>>>
 HandlerManager::getServiceMappings() {
-  
-  //return serviceConnectionsMap_.copy();
+  // return serviceConnectionsMap_.copy();
 }
 }  // namespace psychopomp
