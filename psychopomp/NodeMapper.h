@@ -49,15 +49,15 @@ class NodeMapper {
   }
 
  private:
+  DomainId getDomainId(const size_t domainIndex, const std::string& node) {
+    auto& domainId = domainToNodeDomainIdMapping_[domainIndex][node];
+    if (domainId == 0) {
+      domainId = domainToNodeDomainIdMapping_.size();
+    }
+    return domainId;
+  }
+
   void addLevelMapping(const camfer::NodeConfig& nodeConfig) {
-    auto getDomainId = [&](const auto& domainIndex,
-                           const auto& node) -> DomainId {
-      auto& domainId = domainToNodeDomainIdMapping_[domainIndex][node];
-      if (domainId == 0) {
-        domainId = domainToNodeDomainIdMapping_.size();
-      }
-      return domainId;
-    };
     auto& domains = nodeConfig.domains();
     nodeMapping_->resize(domains.size() + 2);
     for (size_t domainIndex = 0; domainIndex < domains.size(); domainIndex++) {
