@@ -20,10 +20,17 @@ struct BinWeightInfo {
   CommittableKey<int64_t> totalWeight;
 };
 
+struct MetricInfo {
+  std::vector<std::vector<folly::Optional<MetricValue>>> rawMetrics;
+  std::unordered_map<ShardRangeId, std::vector<folly::Optional<MetricValue>>>
+      shardAggregatedMetrics;
+  std::vector<folly::Optional<MetricValue>> totalAggregatedMetrics;
+};
+
 class SolvingState {
  public:
   SolvingState(
-      std::shared_ptr<std::vector<MappedShardInfo>> shardInfoVector,
+      std::shared_ptr<std::vector<ShardInfo>> shardInfoVector,
       std::shared_ptr<std::vector<std::vector<MetricValue>>> metricVectors,
       std::shared_ptr<std::vector<std::vector<std::vector<DomainId>>>>
           domainMapping);
@@ -35,7 +42,7 @@ class SolvingState {
   Domain getShardDomain() const;
   Domain getBinDomain() const;
 
-  const MappedShardInfo& getShardInfo(DomainId shardId) const;
+  const ShardInfo& getShardInfo(DomainId shardId) const;
 
   size_t getDomainSize(Domain domain) const;
 
@@ -62,7 +69,7 @@ class SolvingState {
   std::unordered_map<Domain, std::unordered_map<DomainId, DomainId>>
       domainIdMap_;
 
-  std::shared_ptr<std::vector<MappedShardInfo>> shardInfoVector_;
+  std::shared_ptr<std::vector<ShardInfo>> shardInfoVector_;
   std::shared_ptr<std::vector<std::vector<MetricValue>>> metricVectors_;
 
   std::shared_ptr<SparseMappingTree> assignmentTree_;

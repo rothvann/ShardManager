@@ -11,10 +11,10 @@ message ShardRange {
     uint64 end = 2;
 }
 
-enum BinStatus {
-    BIN_STATUS_UNKNOWN = 0;
-    BIN_STATUS_HEALTHY = 1;
-    BIN_STATUS_DRAIN = 2;
+enum ShardType {
+    SHARD_TYPE_UNKNOWN = 0;
+    SHARD_TYPE_PRIMARY = 1;
+    SHARD_TYPE_SECONDARY = 2;
 }
 
 enum ShardRangeStatus {
@@ -27,23 +27,28 @@ enum ShardRangeStatus {
     SHARD_RANGE_STATUS_DROPPED = 6; 
 }
 
+message Shard {
+    ShardRange range = 1;
+    ShardType type = 2;
+}
+
 message ShardMetrics {
     map<string, uint32> metrics = 1;
 }
 
 message ShardInfo {
-    ShardRange range = 1;
+    Shard shard = 1;
     ShardMetrics metrics = 2;
     ShardRangeStatus status = 3;
 }
 
 message ShardUpdateRequest {
-    repeated ShardRange assigned_ranges = 1;
-    repeated ShardRange unassigned_ranges = 2;
+    repeated Shard assigned_shards = 1;
+    repeated Shard unassigned_shards = 2;
 }
 
 message ShardForwardRequest {
-    repeated ShardRange forwarded_ranges = 1;
+    repeated Shard forwarded_shards = 1;
     repeated string next_bins = 2;
 }
 
@@ -51,11 +56,10 @@ message ShardInfoUpdate {
     repeated ShardInfo shard_infos = 1;
 }
 
-/* Empty */
-message BinStateRequest {
-}
-
-message BinState {
+enum BinStatus {
+    BIN_STATUS_UNKNOWN = 0;
+    BIN_STATUS_HEALTHY = 1;
+    BIN_STATUS_DRAIN = 2;
 }
  
 /* Empty */

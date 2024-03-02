@@ -69,8 +69,8 @@ void RequestHandler::handleRead(bool ok, bool& shouldAttemptNext) {
 
     auto shardRangeInfoPtr = shardRangeInfo_.wlock();
     for (size_t index = 0; index < shardInfos.size(); index++) {
-      auto start = shardInfos[index].range().start();
-      auto end = shardInfos[index].range().end();
+      auto start = shardInfos[index].shard().range().start();
+      auto end = shardInfos[index].shard().range().end();
       auto range = std::make_pair(start, end);
 
       (*shardRangeInfoPtr)[range] = shardInfos[index];

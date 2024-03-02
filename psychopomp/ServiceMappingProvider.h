@@ -7,6 +7,13 @@
 #include "psychopomp/Types.h"
 
 namespace psychopomp {
+
+struct BinInfo {
+  std::vector<ShardInfo> shardInfos;
+  std::unordered_map<std::string, std::string> levelToNodesMap;
+};
+
+
 class ServiceMappingProvider {
  public:
   virtual std::unordered_map<

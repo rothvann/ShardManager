@@ -7,7 +7,7 @@
 namespace psychopomp {
 
 SolvingState::SolvingState(
-    std::shared_ptr<std::vector<MappedShardInfo>> shardInfoVector,
+    std::shared_ptr<std::vector<ShardInfo>> shardInfoVector,
     std::shared_ptr<std::vector<std::vector<MetricValue>>> metricVectors,
     std::shared_ptr<std::vector<std::vector<std::vector<DomainId>>>>
         domainMapping)
@@ -52,7 +52,7 @@ Domain SolvingState::getShardDomain() const { return shardDomain_; }
 
 Domain SolvingState::getBinDomain() const { return binDomain_; }
 
-const MappedShardInfo& SolvingState::getShardInfo(DomainId shardId) const {
+const ShardInfo& SolvingState::getShardInfo(DomainId shardId) const {
   return (*shardInfoVector_)[shardId];
 }
 

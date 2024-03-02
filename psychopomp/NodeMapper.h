@@ -4,42 +4,11 @@
 #include "ServiceDiscovery.pb.h"
 #include "folly/MapUtil.h"
 #include "folly/Optional.h"
+#include "psychopomp/ServiceMappingProvider.h"
 #include "psychopomp/Types.h"
+#include "psychopomp/placer/SolvingState.h"
 
 namespace psychopomp {
-namespace {
-class NodeTrie {
- public:
-  NodeTrie& addNode(const std::string& node, DomainId domainId, Domain domain) {
-    auto& child = children_[node];
-    child.domain_ = domain;
-    child.domainId_ = domainId;
-
-    return child;
-  }
-
-  folly::Optional<std::vector<std::pair<Domain, DomainId>>> getDomainPairs(
-      std::vector<std::string>& nodes) {
-    std::vector<std::pair<Domain, DomainId>> pairVec;
-    pairVec.reserve(nodes.size());
-
-    auto* currentNode = this;
-    for (auto& node : nodes) {
-      currentNode = folly::get_ptr(currentNode->children_, node);
-      if (!currentNode) {
-        return folly::none;
-      }
-      pairVec.emplace_back(currentNode->domain_, currentNode->domainId_);
-    }
-    return pairVec;
-  }
-
- private:
-  std::unordered_map<std::string, NodeTrie> children_;
-  Domain domain_;
-  DomainId domainId_;
-};
-}  // namespace
 
 class NodeMapper {
  public:
@@ -48,21 +17,12 @@ class NodeMapper {
       const camfer::MetricConfig& metricConfig,
       const std::unordered_map<BinId, BinInfo>& binMapping,
       const std::vector<std::pair<ShardKey, ShardKey>>& shardKeyRangeMapping)
-      : mappedShardInfos_(std::make_shared<std::vector<MappedShardInfo>>()),
+      : shardInfos_(std::make_shared<std::vector<ShardInfo>>()),
         metricVectors_(
             std::make_shared<std::vector<std::vector<MetricValue>>>()),
         nodeMapping_(std::make_shared<
                      std::vector<std::vector<std::vector<DomainId>>>>()) {
-    auto& levels = nodeConfig.node_levels();
-    auto& nodeChildrenVector = nodeConfig.node_children_vector();
-    nodeMapping_->resize(levels.size() + 2);
-    for (size_t levelIndex = 0; levelIndex < levels.size(); levelIndex++) {
-      (*nodeMapping_)[levelIndex].resize(
-          nodeChildrenVector.at(levels.at(levelIndex)).children().size());
-    }
-
-    std::unordered_map<size_t, size_t> levelToIndexMap;
-    addLevelMapping(nodeConfig, levelToIndexMap, nodeTrie_, 0);
+    addLevelMapping(nodeConfig);
     createMetricMapping(metricConfig);
     createNodeMapping(binMapping, shardKeyRangeMapping);
   }
@@ -75,8 +35,8 @@ class NodeMapper {
     return folly::get_optional(binDomainIdMapping_, domainId);
   }
 
-  std::shared_ptr<std::vector<MappedShardInfo>> getMappedShardInfoVector() {
-    return mappedShardInfos_;
+  std::shared_ptr<std::vector<ShardInfo>> getShardInfoVector() {
+    return shardInfos_;
   }
 
   std::shared_ptr<std::vector<std::vector<MetricValue>>> getMetricVectors() {
@@ -89,26 +49,29 @@ class NodeMapper {
   }
 
  private:
-  void addLevelMapping(const camfer::NodeConfig& nodeConfig,
-                       std::unordered_map<size_t, size_t>& levelToIndexMap,
-                       NodeTrie& nodeTrie, size_t levelIndex) {
-    auto& levels = nodeConfig.node_levels();
-    if (levelIndex >= levels.size()) {
-      return;
-    }
-    auto& level = levels[levelIndex];
-    auto childrenIndex = levelIndex <= 0 ? 0 : levelToIndexMap[levelIndex - 1];
-    auto& nodeChildrenVector = nodeConfig.node_children_vector();
-    auto& nodes =
-        nodeChildrenVector.at(level).children().at(childrenIndex).nodes();
-
-    for (auto& node : nodes) {
-      auto& nextNode = nodeTrie.addNode(node, levelIndex + 1,
-                                        levelToIndexMap[levelIndex] + 1);
-      (*nodeMapping_)[levelIndex][childrenIndex].push_back(
-          levelToIndexMap[levelIndex] + 1);
-      addLevelMapping(nodeConfig, levelToIndexMap, nextNode, levelIndex + 1);
-      levelToIndexMap[levelIndex]++;
+  void addLevelMapping(const camfer::NodeConfig& nodeConfig) {
+    auto getDomainId = [&](const auto& domainIndex,
+                           const auto& node) -> DomainId {
+      auto& domainId = domainToNodeDomainIdMapping_[domainIndex][node];
+      if (domainId == 0) {
+        domainId = domainToNodeDomainIdMapping_.size();
+      }
+      return domainId;
+    };
+    auto& domains = nodeConfig.domains();
+    nodeMapping_->resize(domains.size() + 2);
+    for (size_t domainIndex = 0; domainIndex < domains.size(); domainIndex++) {
+      auto& nodes = nodeConfig.domain_nodes().at(domains[domainIndex]).nodes();
+      (*nodeMapping_)[domainIndex].resize(nodes.size());
+      for (auto& node : nodes) {
+        auto& name = node.name();
+        auto& children = node.children();
+        auto parentId = getDomainId(domainIndex, name);
+        for (auto& child : children) {
+          auto childId = getDomainId(domainIndex + 1, child);
+          (*nodeMapping_)[domainIndex][parentId].push_back(childId);
+        }
+      }
     }
   }
 
@@ -134,7 +97,7 @@ class NodeMapper {
       // Create shard info
       for (auto& shardInfo : binInfo.shardInfos) {
         auto rangePair = std::make_pair<ShardKey, ShardKey>(
-            shardInfo.range().start(), shardInfo.range().end());
+            shardInfo.shard().range().start(), shardInfo.shard().range().end());
         auto closestShard =
             std::lower_bound(shardKeyRangeMapping.begin(),
                              shardKeyRangeMapping.end(), rangePair);
@@ -144,32 +107,31 @@ class NodeMapper {
           // We ignore
           continue;
         }
-        MappedShardInfo mappedShardInfo;
-        mappedShardInfo.shardRangeId =
-            (closestShard - shardKeyRangeMapping.begin());
-        mappedShardInfos_->push_back(mappedShardInfo);
-
-        shardsInBin.push_back(mappedShardInfos_->size() - 1);
+        shardInfos_->emplace_back(shardInfo);
+        shardsInBin.push_back(shardInfos_->size() - 1);
 
         // Create shard metric info
-        std::vector<MetricValue> metrics(metricMapping_.size());
+        std::vector<folly::Optional<MetricValue>> metrics(
+            metricMapping_.size());
         for (auto& metricKey : metricMapping_) {
-          auto metricVal = static_cast<MetricValue>(
-              folly::get_default(shardInfo.metrics().metrics(), metricKey, 0));
-          metrics.push_back(metricVal);
+          auto metricVal =
+              folly::get_optional(shardInfo.metrics().metrics(), metricKey);
+          // metrics.push_back(metricVal);
         }
-        metricVectors_->push_back(std::move(metrics));
+        // metricVectors_->push_back(std::move(metrics));
       }
       // Map bin to nodes in map
     }
   }
-  std::shared_ptr<std::vector<MappedShardInfo>> mappedShardInfos_;
+  std::shared_ptr<std::vector<ShardInfo>> shardInfos_;
   std::shared_ptr<std::vector<std::vector<MetricValue>>> metricVectors_;
   std::shared_ptr<std::vector<std::vector<std::vector<DomainId>>>> nodeMapping_;
 
   std::vector<std::string> metricMapping_;
   std::unordered_map<DomainId, BinId> binDomainIdMapping_;
   std::unordered_map<BinId, DomainId> domainIdBinMapping_;
-  NodeTrie nodeTrie_;
+
+  std::unordered_map<size_t, std::unordered_map<std::string, DomainId>>
+      domainToNodeDomainIdMapping_;
 };
 }  // namespace psychopomp

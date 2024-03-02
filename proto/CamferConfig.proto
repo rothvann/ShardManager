@@ -7,20 +7,21 @@ message ShardingConfig {
     int32 redundancy_factor = 2; 
 }
 
-message NodeChildren {
-    repeated string nodes = 1;
+message Node {
+    string name = 1;
+    repeated string children = 2;
 }
 
-message NodeChildrenVector {
-    repeated NodeChildren children = 1;
+message DomainNodes {
+    repeated Node nodes = 1;
 }
 
 message NodeConfig {
     /*
-    Names of groups defining structure from highest to lowest
+    Names of domains defining structure from highest to lowest
     IE ['region', 'datacenter', 'rack']
     */
-    repeated string node_levels = 1;
+    repeated string domains = 1;
     /* 
     Tree structure representing topology.
     IE 
@@ -28,7 +29,7 @@ message NodeConfig {
     'datacenter', ['DC1', 'DC2', 'DC3'], ['DC1', 'DC2']
     'rack', ['R1', 'R2'], ['R1'], ['R1'], ['R1', R2'], ['R1', 'R2']
     */
-    map<string, NodeChildrenVector> node_children_vector = 2;
+    map<string, DomainNodes> domain_nodes = 2;
 }
 
 message MetricConfig {
@@ -50,11 +51,27 @@ message MinMaxDeltaBalancingStrategy {
 }
 
 message LoadBalancingConfig {
-    string group = 1; // Group to load balance on
+    string node_level = 1; // Node level to load balance on
     oneof LoadBalancingStrategy {
         MeanMaxDeltaBalancingStrategy mean_max_strategy = 2;
         MinMaxDeltaBalancingStrategy min_max_strategy = 3;
     }
+}
+
+/*
+    Shard placement preferences to increase locality
+*/
+message MinimumReplicaConfig {
+    string domain = 1; 
+    uint32 min_replica_count = 2;
+}
+
+/*
+    Distribute shards across fault domain when possible 
+*/
+message MaximumReplicaConfig {
+    string domain = 1; 
+    uint32 max_replica_count = 2;
 }
 
 message ServiceConfig {
@@ -62,4 +79,6 @@ message ServiceConfig {
     NodeConfig node_config = 2;
     MetricConfig metric_config = 3;
     repeated LoadBalancingConfig load_balancing_configs = 4;   
+    repeated MinimumReplicaConfig min_replica_configs = 5;
+    repeated MaximumReplicaConfig max_replica_configs = 6;
 }

@@ -21,16 +21,6 @@ typedef uint64_t ShardKey;
 typedef size_t ShardRangeId;
 typedef size_t ReplicaId;
 
-struct BinInfo {
-  std::vector<ShardInfo> shardInfos;
-  std::unordered_map<std::string, std::string> levelToNodesMap;
-};
-
-struct MappedShardInfo {
-  ShardRangeId shardRangeId;
-};
-
-
 const DomainId kDefaultBin = 0;
 const DomainId kDefaultDomain = 0;
 const Metric kShardCountMetric = 0;

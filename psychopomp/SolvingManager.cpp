@@ -62,7 +62,7 @@ void SolvingManager::createSolvingState(
     nodeMappers_[svcId] = nodeMapper;
 
     solvingStates_[svcId] = std::make_shared<SolvingState>(
-        nodeMapper->getMappedShardInfoVector(), nodeMapper->getMetricVectors(),
+        nodeMapper->getShardInfoVector(), nodeMapper->getMetricVectors(),
         nodeMapper->getNodeMapping());
   }
 }
