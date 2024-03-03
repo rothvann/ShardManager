@@ -1,0 +1,13 @@
+cxx_library(
+    name = 'jsoncpp',
+    srcs = glob(['/home/abastani/Documents/CAMFER/SMTH/external_deps/jsoncpp-1.9.5/src']),
+    visibility = ['PUBLIC'],
+)
+
+cxx_binary(
+    name = 'test',
+    srcs = [
+        'GetShardMap.cpp',
+    ],
+    deps = ['//:jsoncpp'],
+)
