@@ -2656,9 +2656,319 @@ filegroup(
 genrule(
   name = 'build-aws-sdk',
   srcs = ['//external_deps:aws-sdk-files'],
-  cmd = '(cd $SRCS/aws-sdk-cpp && cmake . -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native -fPIC" && make -j16 && make install) && cp -r $SRCS/aws-sdk-cpp/out/. $OUT',
+  cmd = '(cd $SRCS/aws-sdk-cpp && bash prefetch_crt_dependency.sh && cmake . -DCMAKE_BUILD_TYPE=Release -DBUILD_ONLY="s3;dynamodb" -DBUILD_SHARED_LIBS=OFF -DCPP_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native -fPIC" && make -j16 && make install) && cp -r $SRCS/aws-sdk-cpp/out/. $OUT',
   out = '.',
   visibility = [
   'PUBLIC',
   ],
 )
+
+genrule(
+  name = 'headers-aws-sdk',
+  srcs = ['//external_deps:build-aws-sdk'],
+  cmd = 'cp -r $SRCS/include $OUT',
+  out = '.'
+)
+
+genrule(
+  name = 'lib-aws-c-auth',
+  srcs = ['//external_deps:build-aws-sdk'],
+  cmd = 'cp -r $SRCS/lib/libaws-c-auth.a $OUT',
+  out = 'libaws-c-auth.a'
+)
+
+genrule(
+  name = 'lib-aws-c-cal',
+  srcs = ['//external_deps:build-aws-sdk'],
+  cmd = 'cp -r $SRCS/lib/libaws-c-cal.a $OUT',
+  out = 'libaws-c-cal.a'
+)
+
+genrule(
+  name = 'lib-aws-c-common',
+  srcs = ['//external_deps:build-aws-sdk'],
+  cmd = 'cp -r $SRCS/lib/libaws-c-common.a $OUT',
+  out = 'libaws-c-common.a'
+)
+
+genrule(
+  name = 'lib-aws-c-compression',
+  srcs = ['//external_deps:build-aws-sdk'],
+  cmd = 'cp -r $SRCS/lib/libaws-c-compression.a $OUT',
+  out = 'libaws-c-compression.a'
+)
+
+genrule(
+  name = 'lib-aws-c-event-stream',
+  srcs = ['//external_deps:build-aws-sdk'],
+  cmd = 'cp -r $SRCS/lib/libaws-c-event-stream.a $OUT',
+  out = 'libaws-c-event-stream.a'
+)
+    
+genrule(
+  name = 'lib-aws-c-http',
+  srcs = ['//external_deps:build-aws-sdk'],
+  cmd = 'cp -r $SRCS/lib/libaws-c-http.a $OUT',
+  out = 'libaws-c-http.a'
+)
+
+genrule(
+  name = 'lib-aws-c-io',
+  srcs = ['//external_deps:build-aws-sdk'],
+  cmd = 'cp -r $SRCS/lib/libaws-c-io.a $OUT',
+  out = 'libaws-c-io.a'
+)
+
+genrule(
+  name = 'lib-aws-c-mqtt',
+  srcs = ['//external_deps:build-aws-sdk'],
+  cmd = 'cp -r $SRCS/lib/libaws-c-mqtt.a $OUT',
+  out = 'libaws-c-mqtt.a'
+)
+
+genrule(
+  name = 'lib-aws-c-s3',
+  srcs = ['//external_deps:build-aws-sdk'],
+  cmd = 'cp -r $SRCS/lib/libaws-c-s3.a $OUT',
+  out = 'libaws-c-s3.a'
+)
+
+genrule(
+  name = 'lib-aws-c-sdkutils',
+  srcs = ['//external_deps:build-aws-sdk'],
+  cmd = 'cp -r $SRCS/lib/libaws-c-sdkutils.a $OUT',
+  out = 'libaws-c-sdkutils.a'
+)
+
+genrule(
+  name = 'lib-aws-checksums',
+  srcs = ['//external_deps:build-aws-sdk'],
+  cmd = 'cp -r $SRCS/lib/libaws-checksums.a $OUT',
+  out = 'libaws-checksums.a'
+)
+
+genrule(
+  name = 'lib-aws-cpp-sdk-core',
+  srcs = ['//external_deps:build-aws-sdk'],
+  cmd = 'cp -r $SRCS/lib/libaws-cpp-sdk-core.a $OUT',
+  out = 'libaws-cpp-sdk-core.a'
+)
+
+genrule(
+  name = 'lib-aws-cpp-sdk-dynamodb',
+  srcs = ['//external_deps:build-aws-sdk'],
+  cmd = 'cp -r $SRCS/lib/libaws-cpp-sdk-dynamodb.a $OUT',
+  out = 'libaws-cpp-sdk-dynamodb.a'
+)
+
+genrule(
+  name = 'lib-aws-cpp-sdk-s3',
+  srcs = ['//external_deps:build-aws-sdk'],
+  cmd = 'cp -r $SRCS/lib/libaws-cpp-sdk-s3.a $OUT',
+  out = 'libaws-cpp-sdk-s3.a'
+)
+
+genrule(
+  name = 'lib-aws-crt-cpp',
+  srcs = ['//external_deps:build-aws-sdk'],
+  cmd = 'cp -r $SRCS/lib/libaws-crt-cpp.a $OUT',
+  out = 'libaws-crt-cpp.a'
+)
+
+genrule(
+  name = 'lib-aws-s2n',
+  srcs = ['//external_deps:build-aws-sdk'],
+  cmd = 'cp -r $SRCS/lib/libs2n.a $OUT',
+  out = 'libs2n.a'
+)
+
+genrule(
+  name = 'lib-aws-testing-resources',
+  srcs = ['//external_deps:build-aws-sdk'],
+  cmd = 'cp -r $SRCS/lib/libtesting-resources.a $OUT',
+  out = 'libtesting-resources.a'
+)
+
+prebuilt_cxx_library(
+  name = 'aws-c-auth',
+  static_lib = '//external_deps:lib-aws-c-auth',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+prebuilt_cxx_library(
+  name = 'aws-c-cal',
+  static_lib = '//external_deps:lib-aws-c-cal',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+prebuilt_cxx_library(
+  name = 'aws-c-common',
+  static_lib = '//external_deps:lib-aws-c-common',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+prebuilt_cxx_library(
+  name = 'aws-c-compression',
+  static_lib = '//external_deps:lib-aws-c-compression',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+prebuilt_cxx_library(
+  name = 'aws-c-event-stream',
+  static_lib = '//external_deps:lib-aws-c-event-stream',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+prebuilt_cxx_library(
+  name = 'aws-c-http',
+  static_lib = '//external_deps:lib-aws-c-http',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+prebuilt_cxx_library(
+  name = 'aws-c-io',
+  static_lib = '//external_deps:lib-aws-c-io',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+prebuilt_cxx_library(
+  name = 'aws-c-mqtt',
+  static_lib = '//external_deps:lib-aws-c-mqtt',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+prebuilt_cxx_library(
+  name = 'aws-c-s3',
+  static_lib = '//external_deps:lib-aws-c-s3',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+prebuilt_cxx_library(
+  name = 'aws-c-sdkutils',
+  static_lib = '//external_deps:lib-aws-c-sdkutils',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+prebuilt_cxx_library(
+  name = 'aws-checksums',
+  static_lib = '//external_deps:lib-aws-checksums',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+prebuilt_cxx_library(
+  name = 'aws-cpp-sdk-core',
+  static_lib = '//external_deps:lib-aws-cpp-sdk-core',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+prebuilt_cxx_library(
+  name = 'aws-cpp-sdk-dynamodb',
+  static_lib = '//external_deps:lib-aws-cpp-sdk-dynamodb',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+prebuilt_cxx_library(
+  name = 'aws-cpp-sdk-s3',
+  static_lib = '//external_deps:lib-aws-cpp-sdk-s3',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+prebuilt_cxx_library(
+  name = 'aws-crt-cpp',
+  static_lib = '//external_deps:lib-aws-crt-cpp',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+prebuilt_cxx_library(
+  name = 'aws-s2n',
+  static_lib = '//external_deps:lib-aws-s2n',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+prebuilt_cxx_library(
+  name = 'aws-testing-resources',
+  static_lib = '//external_deps:lib-aws-testing-resources',
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+prebuilt_cxx_library(
+  name = 'aws-sdk',
+  header_namespace = '',
+  exported_deps = [
+    '//external_deps:aws-c-auth',
+    '//external_deps:aws-c-cal',
+    '//external_deps:aws-c-common',
+    '//external_deps:aws-c-compression',
+    '//external_deps:aws-c-event-stream',
+    '//external_deps:aws-c-http',
+    '//external_deps:aws-c-io',
+    '//external_deps:aws-c-mqtt',
+    '//external_deps:aws-c-s3',
+    '//external_deps:aws-c-sdkutils',
+    '//external_deps:aws-checksums',
+    '//external_deps:aws-cpp-sdk-core',
+    '//external_deps:aws-cpp-sdk-dynamodb',
+    '//external_deps:aws-cpp-sdk-s3',
+    '//external_deps:aws-crt-cpp',
+    '//external_deps:aws-s2n',
+    '//external_deps:aws-testing-resources',
+  ],
+  exported_headers = ['//external_deps:headers-aws-sdk'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
+
