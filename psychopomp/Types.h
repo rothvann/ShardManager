@@ -18,8 +18,7 @@ typedef int32_t MetricValue;
 typedef uint64_t BinId;
 typedef uint64_t ServiceId;
 typedef uint64_t ShardKey;
-typedef size_t ShardRangeId;
-typedef size_t ReplicaId;
+typedef uint64_t ShardId;
 
 const DomainId kDefaultBin = 0;
 const DomainId kDefaultDomain = 0;

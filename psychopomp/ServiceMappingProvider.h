@@ -10,7 +10,7 @@ namespace psychopomp {
 
 struct BinInfo {
   std::vector<ShardInfo> shardInfos;
-  std::unordered_map<std::string, std::string> levelToNodesMap;
+  std::unordered_map<std::string, std::string> domainToNodesMap;
 };
 
 

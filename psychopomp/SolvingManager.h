@@ -24,7 +24,8 @@ class SolvingManager {
 
   // Stages
   void populateServiceConfig(std::unordered_set<ServiceId>& serviceIds);
-  void populateShardKeyRangeMap(std::unordered_set<ServiceId>& serviceIds);
+  void populateShardMap(std::unordered_set<ServiceId>& serviceIds);
+  void populateShardMetricsMap(std::unordered_set<ServiceId>& serviceIds);
   void createSolvingState(std::unordered_set<ServiceId>& serviceIds);
   void solve(std::unordered_set<ServiceId>& serviceIds);
   void outputSolution(std::unordered_set<ServiceId>& serviceIds);
@@ -42,8 +43,11 @@ class SolvingManager {
 
   std::unordered_map<ServiceId, camfer::ServiceConfig> serviceConfig_;
   std::unordered_map<
-      ServiceId, std::shared_ptr<std::vector<std::pair<ShardKey, ShardKey>>>>
-      shardKeyRangeMappings_;
+      ServiceId, std::unordered_map<ShardId, Shard>>
+      shardMappings_;
+  std::unordered_map<
+      ServiceId, std::unordered_map<ShardId, ShardMetrics>>
+      shardMetricsMappings_;
 
   std::unordered_map<ServiceId,
                      std::unordered_map<BinId, BinInfo>>

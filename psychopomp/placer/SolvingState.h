@@ -20,13 +20,6 @@ struct BinWeightInfo {
   CommittableKey<int64_t> totalWeight;
 };
 
-struct MetricInfo {
-  std::vector<std::vector<folly::Optional<MetricValue>>> rawMetrics;
-  std::unordered_map<ShardRangeId, std::vector<folly::Optional<MetricValue>>>
-      shardAggregatedMetrics;
-  std::vector<folly::Optional<MetricValue>> totalAggregatedMetrics;
-};
-
 class SolvingState {
  public:
   SolvingState(

@@ -4,11 +4,8 @@ package psychopomp;
 
 import "ServiceDiscovery.proto";
 
-message ShardRangeMapPartitions {
-    string partition_key = 1;
-    repeated string sort_keys = 2;
-}
-
-message ShardRangeMap {
-    repeated KeyspaceRange keyspace_ranges = 1;
+message ShardMapPartitions {
+    repeated string sort_keys = 1;
+    map<uint64, Shard> shards = 2;
+    map<uint64, ShardMetrics> shard_metrics = 3;
 }

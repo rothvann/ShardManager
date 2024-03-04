@@ -21,21 +21,21 @@ void SolvingManager::populateServiceConfig(
   // Need to retrieve from s3
 }
 
-void SolvingManager::populateShardKeyRangeMap(
+void SolvingManager::populateShardMap(
     std::unordered_set<ServiceId>& serviceIds) {
   for (auto& svcId : serviceIds) {
-    auto shardKeyRangeMapping =
-        folly::get_default(shardKeyRangeMappings_, svcId, nullptr);
+    auto shardMapping = folly::get_optional(shardMappings_, svcId);
 
     // Dummy code
     // Need to retrieve previous map from s3
-    if (!shardKeyRangeMapping) {
-      std::vector<std::pair<ShardKey, ShardKey>> shardKeyRangeMap;
+    if (!shardMapping) {
+      std::vector<std::pair<ShardKey, ShardKey>> shardKeyRanges =
+          generateShardKeyRangeMap(0, std::numeric_limits<int64_t>::max(), 100);
+      std::unordered_map<ShardId, Shard> tempShardMapping;
+      for (auto& range : shardKeyRanges) {
+      }
 
-      shardKeyRangeMappings_.emplace(
-          svcId, std::make_shared<std::vector<std::pair<ShardKey, ShardKey>>>(
-                     generateShardKeyRangeMap(
-                         0, std::numeric_limits<int64_t>::max(), 100)));
+      shardMappings_.emplace(svcId, std::move(tempShardMapping));
     }
   }
 }
@@ -46,10 +46,10 @@ void SolvingManager::createSolvingState(
   solvingStates_.reserve(serviceIds.size());
 
   for (auto& svcId : serviceIds) {
-    auto shardKeyRangeMapping =
-        folly::get_default(shardKeyRangeMappings_, svcId, nullptr);
+    auto* shardMapping = folly::get_ptr(shardMappings_, svcId);
     auto binMapping = folly::get_ptr(binMappings_, svcId);
-    if (!shardKeyRangeMapping || !binMapping) {
+    auto& shardMetricsMapping = shardMetricsMappings_[svcId];
+    if (!shardMapping || !binMapping) {
       // log failed
       continue;
     }
@@ -58,7 +58,7 @@ void SolvingManager::createSolvingState(
     // Map all shards
     auto nodeMapper = std::make_shared<NodeMapper>(
         svcConfig.node_config(), svcConfig.metric_config(), *binMapping,
-        *shardKeyRangeMapping);
+        *shardMapping, shardMetricsMapping);
     nodeMappers_[svcId] = nodeMapper;
 
     solvingStates_[svcId] = std::make_shared<SolvingState>(

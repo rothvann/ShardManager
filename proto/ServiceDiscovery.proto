@@ -30,6 +30,7 @@ enum ShardRangeStatus {
 message Shard {
     ShardRange range = 1;
     ShardType type = 2;
+    uint64 id = 3;
 }
 
 message ShardMetrics {
