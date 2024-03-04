@@ -4,6 +4,7 @@ cxx_library(
         'Types.h',
     ],
     exported_deps = ['//proto:service_discovery_cpp', '//proto:camfer_config_cpp'],
+    preferred_linkage = 'static',
     visibility = [
         'PUBLIC',
     ],
@@ -19,6 +20,7 @@ cxx_library(
         'SolvingManagerUtils.h'
     ],
     exported_deps = ['//psychopomp:common', '//external_deps:folly', '//psychopomp/placer:placer'],
+    preferred_linkage = 'static',
     visibility = [
         'PUBLIC',
     ],

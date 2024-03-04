@@ -22,3 +22,6 @@
 [submodule "external_deps/grpc"]
 	path = external_deps/grpc
 	url = https://github.com/grpc/grpc.git
+[submodule "external_deps/aws-sdk-cpp"]
+	path = external_deps/aws-sdk-cpp
+	url = https://github.com/aws/aws-sdk-cpp.git

@@ -37,7 +37,7 @@ filegroup(
 genrule(
   name = 'build-folly',
   srcs = ['//external_deps:folly-files'],
-  cmd = '(cd ${SRCDIR}/folly-files/folly && python3 ./build/fbcode_builder/getdeps.py --allow-system-packages build --extra-cmake-defines=\'{"FOLLY_CXX_FLAGS": "-O2;-fPIC;-march=native", "DCMAKE_CXX_STANDARD": "17"}\' --install-dir=./out) && cp -r ${SRCDIR}/folly-files/folly/out/. $OUT',
+  cmd = '(cd ${SRCDIR}/folly-files/folly && python3 ./build/fbcode_builder/getdeps.py --allow-system-packages build --extra-cmake-defines=\'{"FOLLY_CXX_FLAGS": "-O2;-fPIC;-march=native", "DCMAKE_CXX_STANDARD": "17"}\' --scratch-path=./out --install-dir=./out) && cp -r ${SRCDIR}/folly-files/folly/out/. $OUT',
   out = '.',
 )
 
@@ -49,19 +49,44 @@ genrule(
 )
 
 genrule(
+  name = 'headers-fmt',
+  srcs = ['//external_deps:build-folly'],
+  cmd = 'cp -r $SRCS/installed/**/include/fmt $OUT',
+  out = 'fmt'
+)
+
+genrule(
   name = 'lib-folly',
   srcs = ['//external_deps:build-folly'],
   cmd = 'cp -r $SRCS/lib/libfolly.a $OUT',
   out = 'libfolly.a'
 )
 
+genrule(
+  name = 'lib-fmt',
+  srcs = ['//external_deps:build-folly'],
+  cmd = 'cp -r $SRCS/installed/**/lib/libfmt.a $OUT',
+  out = 'libfmt.a'
+)
+
+prebuilt_cxx_library(
+  name = 'fmt',
+  static_lib = '//external_deps:lib-fmt',
+  header_namespace = '',
+  exported_headers = ['//external_deps:headers-fmt'],
+  preferred_linkage = 'static',
+  visibility = [
+    'PUBLIC',
+  ],
+)
+
 prebuilt_cxx_library(
   name = 'folly',
-  static_lib = '//external_deps:lib-folly',
-  deps = ['//external_deps:gtest'],
   header_namespace = '',
+  static_lib = '//external_deps:lib-folly',
+  exported_deps = ['//external_deps:fmt', '//external_deps:gtest'],
   exported_headers = ['//external_deps:headers-folly'],
-  exported_linker_flags = ['-lfmt', '-lglog', '-lgflags', '-ldouble-conversion'],
+  exported_linker_flags = ['-lglog', '-lgflags', '-ldouble-conversion'],
   preferred_linkage = 'static',
   visibility = [
     'PUBLIC',
@@ -105,7 +130,7 @@ filegroup(
 genrule(
   name = 'build-protobuf',
   srcs = ['//external_deps:protobuf-files'],
-  cmd = '(cd $SRCS/protobuf && cmake . -Dprotobuf_ABSL_PROVIDER=package -DCMAKE_PREFIX_PATH=../../$(location //external_deps:build-abseil)/lib/cmake/ -Dprotobuf_BUILD_TESTS=OFF -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native -fPIC" && make && make install) && cp -r $SRCS/protobuf/out/. $OUT',
+  cmd = '(cd $SRCS/protobuf && cmake . -Dprotobuf_ABSL_PROVIDER=package -DCMAKE_PREFIX_PATH=../../$(location //external_deps:build-abseil)/lib/cmake/ -Dprotobuf_BUILD_TESTS=OFF -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native -fPIC" && make -j16 && make install) && cp -r $SRCS/protobuf/out/. $OUT',
   out = '.',
 )
 
@@ -205,7 +230,7 @@ filegroup(
 genrule(
   name = 'build-grpc',
   srcs = ['//external_deps:grpc-files'],
-  cmd = '(cd $SRCS/grpc && cmake . -DgRPC_ABSL_PROVIDER=package -DgRPC_PROTOBUF_PROVIDER=package -DCMAKE_PREFIX_PATH="../../$(location //external_deps:build-abseil)/lib/cmake/;../../$(location //external_deps:build-protobuf)/lib/cmake/" -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native" && make && make install) && cp -r $SRCS/grpc/out/. $OUT',
+  cmd = '(cd $SRCS/grpc && cmake . -DgRPC_ABSL_PROVIDER=package -DgRPC_PROTOBUF_PROVIDER=package -DCMAKE_PREFIX_PATH="../../$(location //external_deps:build-abseil)/lib/cmake/;../../$(location //external_deps:build-protobuf)/lib/cmake/" -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native" && make -j16 && make install) && cp -r $SRCS/grpc/out/. $OUT',
   out = '.',
 )
 
@@ -752,7 +777,7 @@ filegroup(
 genrule(
   name = 'build-gtest',
   srcs = ['//external_deps:gtest-files'],
-  cmd = 'cmake -S $SRCS/googletest/. -B ./ -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS="-O2 -march=native" -DCMAKE_INSTALL_PREFIX=$OUT -DGTEST_HAS_PTHREAD=1 && make && make install',
+  cmd = 'cmake -S $SRCS/googletest/. -B ./ -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS="-O2 -march=native" -DCMAKE_INSTALL_PREFIX=$OUT -DGTEST_HAS_PTHREAD=1 && make -j16 && make install',
   out = '.',
 )
 
@@ -792,7 +817,7 @@ filegroup(
 genrule(
   name = 'build-abseil',
   srcs = ['//external_deps:abseil-files'],
-  cmd = '(cd $SRCS/abseil-cpp && cmake . -DBUILD_TESTING=OFF -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native -fPIC" && make && make install) && cp -r $SRCS/abseil-cpp/out/. $OUT',
+  cmd = '(cd $SRCS/abseil-cpp && cmake . -DBUILD_TESTING=OFF -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native -fPIC" && make -j16 && make install) && cp -r $SRCS/abseil-cpp/out/. $OUT',
   out = '.',
   visibility = [
   'PUBLIC',
@@ -1077,14 +1102,6 @@ genrule(
   srcs = ['//external_deps:build-abseil'],
   cmd = 'cp -r $SRCS/lib/libabsl_flags_usage.a $OUT',
   out = 'libabsl_flags_usage.a'
-)
-    
-
-genrule(
-  name = 'lib-abseil-flags',
-  srcs = ['//external_deps:build-abseil'],
-  cmd = 'cp -r $SRCS/lib/libabsl_flags.a $OUT',
-  out = 'libabsl_flags.a'
 )
     
 
@@ -1912,18 +1929,6 @@ prebuilt_cxx_library(
     
 
 prebuilt_cxx_library(
-  name = 'abseil-flags',
-  static_lib = '//external_deps:lib-abseil-flags',
-  header_namespace = '',
-  exported_headers = ['//external_deps:headers-abseil'],
-  preferred_linkage = 'static',
-  visibility = [
-    'PUBLIC',
-  ],
-)
-    
-
-prebuilt_cxx_library(
   name = 'abseil-graphcycles_internal',
   static_lib = '//external_deps:lib-abseil-graphcycles_internal',
   header_namespace = '',
@@ -2584,7 +2589,6 @@ prebuilt_cxx_library(
     '//external_deps:abseil-flags_reflection',
     '//external_deps:abseil-flags_usage_internal',
     '//external_deps:abseil-flags_usage',
-    '//external_deps:abseil-flags',
     '//external_deps:abseil-graphcycles_internal',
     '//external_deps:abseil-hash',
     '//external_deps:abseil-hashtablez_sampler',
@@ -2640,5 +2644,21 @@ prebuilt_cxx_library(
   preferred_linkage = 'static',
   visibility = [
     'PUBLIC',
+  ],
+)
+
+
+filegroup(
+  name = 'aws-sdk-files',
+  srcs = glob(['aws-sdk-cpp/**/*.*'])
+)
+
+genrule(
+  name = 'build-aws-sdk',
+  srcs = ['//external_deps:aws-sdk-files'],
+  cmd = '(cd $SRCS/aws-sdk-cpp && cmake . -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=./out -DCMAKE_CXX_FLAGS="-O2 -march=native -fPIC" && make -j16 && make install) && cp -r $SRCS/aws-sdk-cpp/out/. $OUT',
+  out = '.',
+  visibility = [
+  'PUBLIC',
   ],
 )
