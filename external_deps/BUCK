@@ -2664,10 +2664,31 @@ genrule(
 )
 
 genrule(
-  name = 'headers-aws-sdk',
+  name = 'headers-aws-sdk-aws',
   srcs = ['//external_deps:build-aws-sdk'],
-  cmd = 'cp -r $SRCS/include $OUT',
-  out = '.'
+  cmd = 'cp -r $SRCS/include/aws $OUT',
+  out = 'aws'
+)
+
+genrule(
+  name = 'headers-aws-sdk-s2n',
+  srcs = ['//external_deps:build-aws-sdk'],
+  cmd = 'cp -r $SRCS/include/s2n $OUT',
+  out = 's2n'
+)
+
+genrule(
+  name = 'headers-aws-sdk-smithy',
+  srcs = ['//external_deps:build-aws-sdk'],
+  cmd = 'cp -r $SRCS/include/smithy $OUT',
+  out = 'smithy'
+)
+
+genrule(
+  name = 'headers-aws-sdk-s2n-h',
+  srcs = ['//external_deps:build-aws-sdk'],
+  cmd = 'cp -r $SRCS/include/s2n.h $OUT',
+  out = 's2n.h'
 )
 
 genrule(
@@ -2964,7 +2985,12 @@ prebuilt_cxx_library(
     '//external_deps:aws-s2n',
     '//external_deps:aws-testing-resources',
   ],
-  exported_headers = ['//external_deps:headers-aws-sdk'],
+  exported_headers = [
+    '//external_deps:headers-aws-sdk-aws', 
+    '//external_deps:headers-aws-sdk-s2n', 
+    '//external_deps:headers-aws-sdk-smithy', 
+    '//external_deps:headers-aws-sdk-s2n-h'
+  ],
   preferred_linkage = 'static',
   visibility = [
     'PUBLIC',
