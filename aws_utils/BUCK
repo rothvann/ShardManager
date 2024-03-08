@@ -1,7 +1,14 @@
 cxx_library(
-    name = 'jsoncpp',
-    srcs = glob(['/home/abastani/Documents/CAMFER/SMTH/external_deps/jsoncpp-1.9.5/src']),
-    visibility = ['PUBLIC'],
+    name = 'idk_test',
+    srcs = ['GetShardMap.cpp'],
+    exported_headers = [
+        'GetShardMap.h'
+    ],
+    exported_deps = ['//external_deps:aws-sdk',],
+    preferred_linkage = 'static',
+    visibility = [
+        'PUBLIC',
+    ]
 )
 
 cxx_binary(
@@ -9,5 +16,5 @@ cxx_binary(
     srcs = [
         'GetShardMap.cpp',
     ],
-    deps = ['//:jsoncpp'],
+    deps = ['//external_deps:aws-sdk', '//aws_utils:idk_test'],
 )
