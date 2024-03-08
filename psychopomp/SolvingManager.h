@@ -27,6 +27,7 @@ class SolvingManager {
   void populateShardMap(std::unordered_set<ServiceId>& serviceIds);
   void populateShardMetricsMap(std::unordered_set<ServiceId>& serviceIds);
   void createSolvingState(std::unordered_set<ServiceId>& serviceIds);
+  void createConstraints(std::unordered_set<ServiceId>& serviceIds);
   void solve(std::unordered_set<ServiceId>& serviceIds);
   void outputSolution(std::unordered_set<ServiceId>& serviceIds);
 

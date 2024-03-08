@@ -30,11 +30,11 @@ enum ShardRangeStatus {
 message Shard {
     ShardRange range = 1;
     ShardType type = 2;
-    uint64 id = 3;
+    int64 id = 3;
 }
 
 message ShardMetrics {
-    map<string, uint32> metrics = 1;
+    map<string, int32> metrics = 1;
 }
 
 message ShardInfo {
@@ -72,9 +72,9 @@ message HeartBeatRequest {
 }
 
 message ConnectionRequest {
-    uint64 service_id = 1;
+    int64 service_id = 1;
     string service_key = 2;
-    uint64 bin_id = 3;
+    int64 bin_id = 3;
     map<string, string> groups = 4;
     repeated ShardInfo shard_info = 5;
     BinStatus status = 6;

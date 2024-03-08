@@ -15,8 +15,8 @@ typedef size_t DomainId;
 typedef size_t Metric;
 typedef int32_t MetricValue;
 
-typedef uint64_t BinId;
-typedef uint64_t ServiceId;
+typedef int64_t BinId;
+typedef int64_t ServiceId;
 typedef uint64_t ShardKey;
 typedef uint64_t ShardId;
 

@@ -27,8 +27,8 @@ using server_utils::Operation;
 class Client : server_utils::RequestHandler<psychopomp::ClientMessage,
                                             psychopomp::ServerMessage> {
  public:
-  Client(std::string serviceName, std::string serviceKey)
-      : serviceName_(serviceName), serviceKey_(serviceKey) {}
+  Client(int64_t serviceId, std::string serviceKey)
+      : serviceId_(serviceId), serviceKey_(serviceKey) {}
 
   ~Client() {
     if (context_) {
@@ -159,32 +159,27 @@ class Client : server_utils::RequestHandler<psychopomp::ClientMessage,
     std::cout << "Processing message sync" << std::endl;
     if (message.has_shard_update_request()) {
       const auto& shardUpdateRequest = message.shard_update_request();
-      auto unassignedRanges =
-          copyRepeatedField(shardUpdateRequest.unassigned_ranges());
-      setShardStatus(shardRangePendingStatus_, unassignedRanges,
+      auto unassignedShards =
+          copyRepeatedField(shardUpdateRequest.unassigned_shards());
+      setShardStatus(shardRangePendingStatus_, unassignedShards,
                      psychopomp::SHARD_RANGE_STATUS_PENDING_DROPPED);
 
-      auto assignedRanges =
-          copyRepeatedField(shardUpdateRequest.assigned_ranges());
-      setShardStatus(shardRangePendingStatus_, assignedRanges,
+      auto assignedShards =
+          copyRepeatedField(shardUpdateRequest.assigned_shards());
+      setShardStatus(shardRangePendingStatus_, assignedShards,
                      psychopomp::SHARD_RANGE_STATUS_PENDING_ADDED);
     } else if (message.has_shard_forward_request()) {
       const auto& shardForwardRequest = message.shard_forward_request();
-      auto forwardedRanges =
-          copyRepeatedField(shardForwardRequest.forwarded_ranges());
-      setShardStatus(shardRangePendingStatus_, forwardedRanges,
+      auto forwardedShards =
+          copyRepeatedField(shardForwardRequest.forwarded_shards());
+      setShardStatus(shardRangePendingStatus_, forwardedShards,
                      psychopomp::SHARD_RANGE_STATUS_PENDING_FORWARDING);
     }
   }
 
   void processMessageAsync(psychopomp::ServerMessage message) {
     std::cout << "Processing message async" << std::endl;
-    if (message.has_bin_state_request()) {
-      const auto& binStateRequest = message.bin_state_request();
-
-      // Send back bin state
-
-    } else if (message.has_connection_response()) {
+    if (message.has_connection_response()) {
       const auto& connectionResponse = message.connection_response();
       // Log response
       if (connectionResponse.success()) {
@@ -195,31 +190,31 @@ class Client : server_utils::RequestHandler<psychopomp::ClientMessage,
     } else if (message.has_shard_update_request()) {
       const auto& shardUpdateRequest = message.shard_update_request();
 
-      auto unassignedRanges =
-          copyRepeatedField(shardUpdateRequest.unassigned_ranges());
-      auto assignedRanges =
-          copyRepeatedField(shardUpdateRequest.assigned_ranges());
+      auto unassignedShards =
+          copyRepeatedField(shardUpdateRequest.unassigned_shards());
+      auto assignedShards =
+          copyRepeatedField(shardUpdateRequest.assigned_shards());
 
-      bool success = updateRanges(unassignedRanges, assignedRanges);
+      bool success = updateRanges(unassignedShards, assignedShards);
 
       // Update shard statuses
       if (success) {
-        setShardStatus(shardRangeStatus_, unassignedRanges,
+        setShardStatus(shardRangeStatus_, unassignedShards,
                        psychopomp::SHARD_RANGE_STATUS_DROPPED);
-        setShardStatus(shardRangeStatus_, assignedRanges,
+        setShardStatus(shardRangeStatus_, assignedShards,
                        psychopomp::SHARD_RANGE_STATUS_ADDED);
       } else {
-        setShardStatus(shardRangePendingStatus_, unassignedRanges,
+        setShardStatus(shardRangePendingStatus_, unassignedShards,
                        psychopomp::SHARD_RANGE_STATUS_DROPPED);
       }
 
-      std::vector<psychopomp::ShardRange> ranges(unassignedRanges);
-      ranges.insert(ranges.end(), assignedRanges.begin(), assignedRanges.end());
-      sendShardStatusUpdate(ranges);
+      std::vector<psychopomp::ShardRange> ranges(unassignedShards);
+      ranges.insert(ranges.end(), assignedShards.begin(), assignedRanges.end());
+      sendShardInfoUpdate(ranges);
     } else if (message.has_shard_forward_request()) {
       const auto& shardForwardRequest = message.shard_forward_request();
-      auto forwardedRanges =
-          copyRepeatedField(shardForwardRequest.forwarded_ranges());
+      auto forwardedShards =
+          copyRepeatedField(shardForwardRequest.forwarded_shards());
       std::vector<std::string> nextBins(shardForwardRequest.next_bins().begin(),
                                         shardForwardRequest.next_bins().end());
 
@@ -227,13 +222,13 @@ class Client : server_utils::RequestHandler<psychopomp::ClientMessage,
 
       // Update shard statuses
       if (success) {
-        setShardStatus(shardRangeStatus_, forwardedRanges,
+        setShardStatus(shardRangeStatus_, forwardedShards,
                        psychopomp::SHARD_RANGE_STATUS_FORWARDING);
       } else {
-        setShardStatus(shardRangePendingStatus_, forwardedRanges,
+        setShardStatus(shardRangePendingStatus_, forwardedShards,
                        psychopomp::SHARD_RANGE_STATUS_DROPPED);
       }
-      sendShardStatusUpdate(forwardedRanges);
+      sendShardInfoUpdate(forwardedShards);
     }
   }
 
@@ -256,30 +251,29 @@ class Client : server_utils::RequestHandler<psychopomp::ClientMessage,
     std::cout << "Sending auth message" << std::endl;
     psychopomp::ClientMessage msg;
     auto& connRequest = *msg.mutable_connection_request();
-    connRequest.set_service_name(serviceName_);
+    connRequest.set_service_id(serviceId_);
     connRequest.set_service_key(serviceKey_);
-    connRequest.set_bin_name("test bin");
+    connRequest.set_bin_id(12389098234);
 
     auto currentShardState = getShardStatus();
-    auto& binState = *connRequest.mutable_bin_state();
-    binState.set_status(psychopomp::BIN_STATUS_HEALTHY);
+    connRequest.set_status(psychopomp::BIN_STATUS_HEALTHY);
 
-    auto& shardRangeInfos = *binState.mutable_shard_range_info();
+    auto& shardRangeInfos = *connRequest.mutable_shard_info();
     shardRangeInfos.Reserve(currentShardState.size());
     for (auto [rangePair, status] : currentShardState) {
       auto& shardRangeInfo = *shardRangeInfos.Add();
-      shardRangeInfo.mutable_range()->set_range_start(rangePair.first);
-      shardRangeInfo.mutable_range()->set_range_end(rangePair.second);
+      shardRangeInfo.mutable_shard()->mutable_range()->set_start(rangePair.first);
+      shardRangeInfo.mutable_shard()->mutable_range()->set_end(rangePair.second);
       shardRangeInfo.set_status(status);
     }
 
     write(msg);
   }
 
-  void sendShardStatusUpdate(
+  void sendShardInfoUpdate(
       const std::vector<psychopomp::ShardRange>& ranges) {
     psychopomp::ClientMessage msg;
-    auto& updateResponse = *msg.mutable_shard_status_update_response();
+    auto& updateResponse = *msg.mutable_shard_info_update();
     auto statuses = getShardStatus(ranges);
     auto& shardRanges = *updateResponse.mutable_ranges();
 
@@ -314,8 +308,8 @@ class Client : server_utils::RequestHandler<psychopomp::ClientMessage,
 
     std::lock_guard<std::mutex> lockGuard(stateLock_);
     for (const auto& range : ranges) {
-      auto rangePair = std::make_pair<int64_t, int64_t>(range.range_start(),
-                                                        range.range_end());
+      auto rangePair = std::make_pair<int64_t, int64_t>(range.start(),
+                                                        range.end());
       auto it = shardRangePendingStatus_.find(rangePair);
       if (it != shardRangePendingStatus_.end()) {
         statuses.push_back(it->second);
@@ -343,12 +337,12 @@ class Client : server_utils::RequestHandler<psychopomp::ClientMessage,
     if (status == psychopomp::SHARD_RANGE_STATUS_DROPPED) {
       for (const auto& range : ranges) {
         shardRangeStatusMap.erase(std::make_pair<int64_t, int64_t>(
-            range.range_start(), range.range_end()));
+            range.start(), range.end()));
       }
     } else {
       for (const auto& range : ranges) {
         shardRangeStatusMap[std::make_pair<int64_t, int64_t>(
-            range.range_start(), range.range_end())] = status;
+            range.start(), range.end())] = status;
       }
     }
   }
@@ -359,7 +353,7 @@ class Client : server_utils::RequestHandler<psychopomp::ClientMessage,
   std::unordered_map<std::thread::id, std::shared_ptr<std::thread>> threads_;
 
   // Config
-  std::string serviceName_;
+  int64_t serviceId_;
   std::string serviceKey_;
 
   // Grpc

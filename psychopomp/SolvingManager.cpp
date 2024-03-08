@@ -4,6 +4,7 @@
 
 #include "folly/MapUtil.h"
 #include "psychopomp/SolvingManagerUtils.h"
+#include "psychopomp/placer/utils/RandomGenerator.h"
 
 namespace psychopomp {
 
@@ -32,12 +33,27 @@ void SolvingManager::populateShardMap(
       std::vector<std::pair<ShardKey, ShardKey>> shardKeyRanges =
           generateShardKeyRangeMap(0, std::numeric_limits<int64_t>::max(), 100);
       std::unordered_map<ShardId, Shard> tempShardMapping;
+      auto randomGen = random::SeededRandomGenerator<std::mt19937_64>();
       for (auto& range : shardKeyRanges) {
+        // Generate random ids
+        auto id = randomGen();
+
+        Shard shard;
+        shard.set_id(id);
+        shard.set_type(ShardType::SHARD_TYPE_SECONDARY);
+        shard.mutable_range()->set_start(range.first);
+        shard.mutable_range()->set_end(range.second);
+
+        tempShardMapping.emplace(id, std::move(shard));
       }
 
       shardMappings_.emplace(svcId, std::move(tempShardMapping));
     }
   }
+}
+
+void SolvingManager::populateShardMetricsMap(std::unordered_set<ServiceId>& serviceIds) {
+  // Do nothing for now
 }
 
 void SolvingManager::createSolvingState(

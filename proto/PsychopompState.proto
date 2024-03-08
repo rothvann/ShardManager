@@ -6,6 +6,6 @@ import "ServiceDiscovery.proto";
 
 message ShardMapPartitions {
     repeated string sort_keys = 1;
-    map<uint64, Shard> shards = 2;
-    map<uint64, ShardMetrics> shard_metrics = 3;
+    map<int64, Shard> shards = 2;
+    map<int64, ShardMetrics> shard_metrics = 3;
 }

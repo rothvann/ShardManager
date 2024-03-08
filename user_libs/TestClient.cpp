@@ -3,7 +3,7 @@
 #include "user_libs/Client.h"
 
 int main() {
-  Camfer::Client client("test service", "test key");
+  Camfer::Client client(123124123, "test key");
   client.start();
   
   std::cout << "Running" << std::endl;
