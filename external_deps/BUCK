@@ -2991,6 +2991,7 @@ prebuilt_cxx_library(
     '//external_deps:headers-aws-sdk-smithy', 
     '//external_deps:headers-aws-sdk-s2n-h'
   ],
+  exported_linker_flags = ['-lcurl', '-lcrypto', '-lz'],
   preferred_linkage = 'static',
   visibility = [
     'PUBLIC',
