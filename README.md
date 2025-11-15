@@ -4,6 +4,9 @@ The constraint solver works through iterative local search:
 2. Check if new arrangement is better according to constraints.
 3. Repeat a few thousand times. 
 
+### Incomplete
+This project is missing the orchestrator logic to move the shards around!
+
 ### Reads
 https://research.facebook.com/publications/shard-manager-a-generic-shard-management-framework-for-geo-distributed-applications/
 https://research.google/pubs/slicer-auto-sharding-for-datacenter-applications/
